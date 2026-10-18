@@ -1,0 +1,16 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "OKR 目标与想法管理"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "OKR 记事本主页面"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "OKR"
+    }
+  ]
+}

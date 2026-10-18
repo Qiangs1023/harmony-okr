@@ -1,0 +1,14 @@
+{
+  "routerMap": [
+    {
+      "name": "IdeaDetail",
+      "buildFunction": "IdeaDetailBuilder",
+      "pageSourceFile": "src/main/ets/pages/IdeaDetailPage.ets"
+    },
+    {
+      "name": "KrDetail",
+      "buildFunction": "KrDetailBuilder",
+      "pageSourceFile": "src/main/ets/pages/KrDetailPage.ets"
+    }
+  ]
+}

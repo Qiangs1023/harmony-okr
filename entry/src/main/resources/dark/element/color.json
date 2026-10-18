@@ -1,0 +1,56 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#000000"
+    },
+    {
+      "name": "okr_bg",
+      "value": "#0E1014"
+    },
+    {
+      "name": "okr_card",
+      "value": "#1A1D23"
+    },
+    {
+      "name": "okr_text_primary",
+      "value": "#F2F3F5"
+    },
+    {
+      "name": "okr_text_secondary",
+      "value": "#98A0AC"
+    },
+    {
+      "name": "okr_text_tertiary",
+      "value": "#6A727E"
+    },
+    {
+      "name": "okr_divider",
+      "value": "#262A31"
+    },
+    {
+      "name": "okr_primary",
+      "value": "#7D9DFF"
+    },
+    {
+      "name": "okr_primary_soft",
+      "value": "#1D2440"
+    },
+    {
+      "name": "okr_danger",
+      "value": "#FF6B6B"
+    },
+    {
+      "name": "okr_success",
+      "value": "#38D9A9"
+    },
+    {
+      "name": "okr_warning",
+      "value": "#FFC078"
+    },
+    {
+      "name": "okr_track",
+      "value": "#2A2F37"
+    }
+  ]
+}
