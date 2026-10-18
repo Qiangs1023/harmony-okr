@@ -1,11 +1,14 @@
 import { BusinessError } from '@kit.BasicServicesKit';
 import { IdeaCard } from '../components/IdeaCard';
+import { LoginPanel } from '../components/LoginPanel';
 import { OkrEmptyHint } from '../components/OkrCommon';
 import { ObjectiveCard } from '../components/ObjectiveCard';
 import { QuickCapture } from '../components/QuickCapture';
 import { TagFilterBar } from '../components/TagFilterBar';
 import { OkrIdeaItem, OkrIdeaParam, OkrKrParam, OkrObjectiveItem } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
+import { SESSION } from '../store/SessionStore';
+import { SYNC } from '../store/SyncService';
 
 @Entry
 @ComponentV2
@@ -84,6 +87,13 @@ struct Index {
       }
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1)
+
+      Text(SYNC.statusText())
+        .fontSize(11)
+        .fontColor($r('app.color.okr_text_tertiary'))
+        .onClick((): void => {
+          SYNC.syncNow();
+        })
     }
     .width('100%')
     .padding({ left: 4, right: 4 })
@@ -231,37 +241,50 @@ struct Index {
   }
 
   build() {
-    Navigation(this.pathStack) {
-      Column({ space: 12 }) {
-        this.homeHeader()
-        Tabs({ index: this.currentTab }) {
-          TabContent() {
-            this.inboxTab()
-          }
-          .tabBar('收件箱')
+    Column() {
+      if (SESSION.isLoggedIn()) {
+        Navigation(this.pathStack) {
+          Column({ space: 12 }) {
+            this.homeHeader()
+            Tabs({ index: this.currentTab }) {
+              TabContent() {
+                this.inboxTab()
+              }
+              .tabBar('收件箱')
 
-          TabContent() {
-            this.goalsTab()
+              TabContent() {
+                this.goalsTab()
+              }
+              .tabBar('目标')
+            }
+            .barMode(BarMode.Fixed)
+            .barHeight(56)
+            .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
+            .backgroundColor($r('app.color.okr_bg'))
+            .onChange((index: number): void => {
+              this.currentTab = index;
+            })
+            .layoutWeight(1)
           }
-          .tabBar('目标')
+          .width('100%')
+          .height('100%')
+          .padding({ left: 16, right: 16, top: 12 })
+          .backgroundColor($r('app.color.okr_bg'))
         }
-        .barMode(BarMode.Fixed)
-        .barHeight(56)
-        .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
-        .backgroundColor($r('app.color.okr_bg'))
-        .onChange((index: number): void => {
-          this.currentTab = index;
+        .mode(NavigationMode.Stack)
+        .hideTitleBar(true)
+        .width('100%')
+        .height('100%')
+      } else {
+        LoginPanel({
+          onSignedIn: (): void => {
+            SYNC.start();
+          }
         })
-        .layoutWeight(1)
       }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 16, right: 16, top: 12 })
-      .backgroundColor($r('app.color.okr_bg'))
     }
-    .mode(NavigationMode.Stack)
-    .hideTitleBar(true)
     .width('100%')
     .height('100%')
+    .backgroundColor($r('app.color.okr_bg'))
   }
 }

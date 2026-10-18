@@ -33,6 +33,7 @@ export interface OkrKrItem {
   targetValue: string;
   dueDate: number;
   createdAt: number;
+  updatedAt: number;
 }
 
 export interface OkrObjectiveItem {
@@ -41,6 +42,7 @@ export interface OkrObjectiveItem {
   period: string;
   desc: string;
   createdAt: number;
+  updatedAt: number;
 }
 
 export interface OkrSnapshot {

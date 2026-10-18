@@ -2,13 +2,19 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { window } from '@kit.ArkUI';
 import { OKR_STORE } from '../store/OkrStore';
+import { SESSION } from '../store/SessionStore';
+import { SYNC } from '../store/SyncService';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
-    OKR_STORE.init(this.context);
+    SESSION.init(this.context).then((): void => {
+      OKR_STORE.init(this.context);
+    }).catch(() => {
+      OKR_STORE.init(this.context);
+    });
   }
 
   onDestroy(): void {
@@ -41,7 +47,8 @@ export default class EntryAbility extends UIAbility {
 
   onForeground(): void {
     // Ability has brought to foreground
-    hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
+    hilog.info(DOMAIN, 'testTag', 'Ability onForeground');
+    SYNC.start();
   }
 
   onBackground(): void {

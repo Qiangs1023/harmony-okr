@@ -111,7 +111,8 @@ struct KrDetailPage {
       title: this.titleDraft.trim().length > 0 ? this.titleDraft.trim() : found.title,
       targetValue: this.targetDraft.trim(),
       dueDate: this.due,
-      createdAt: found.createdAt
+      createdAt: found.createdAt,
+      updatedAt: found.updatedAt
     };
     OKR_STORE.updateKr(draft);
     this.dirty = false;

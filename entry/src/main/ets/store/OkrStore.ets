@@ -15,10 +15,28 @@ import {
   okrParseTags,
   okrStringIncludes
 } from '../model/OkrModel';
+import {
+  ApiIdeaItem,
+  ApiKrItem,
+  ApiObjectiveItem,
+  ApiPushBody,
+  ApiPullResult,
+  ApiRemoved,
+  ApiTagItem
+} from '../net/ApiClient';
 
 const DOMAIN: number = 0x0A01;
 const PREF_NAME: string = 'okr_store_v1';
 const KEY_SNAPSHOT: string = 'snapshot';
+
+type PersistListener = () => void;
+
+let persistListener: PersistListener = (): void => {
+};
+
+export function setPersistListener(listener: PersistListener): void {
+  persistListener = listener;
+}
 
 @ObservedV2
 export class OkrStore {
@@ -30,6 +48,10 @@ export class OkrStore {
   @Trace showDone: boolean = true;
 
   private pref: preferences.Preferences | undefined = undefined;
+  private removedIdeas: string[] = [];
+  private removedKrs: string[] = [];
+  private removedObjectives: string[] = [];
+  private suppressPush: boolean = false;
 
   async init(context: common.UIAbilityContext): Promise<void> {
     try {
@@ -251,6 +273,7 @@ export class OkrStore {
 
   deleteIdea(id: string): void {
     this.ideas = this.ideas.filter((item: OkrIdeaItem): boolean => item.id !== id);
+    this.removedIdeas.push(id);
     this.persist();
   }
 
@@ -286,12 +309,14 @@ export class OkrStore {
   // ---------- 目标与 KR ----------
 
   addObjective(title: string, period: string, desc: string): OkrObjectiveItem {
+    const now: number = okrNow();
     const item: OkrObjectiveItem = {
       id: okrNewId('obj'),
       title: title,
       period: period,
       desc: desc,
-      createdAt: okrNow()
+      createdAt: now,
+      updatedAt: now
     };
     this.objectives = [item].concat(this.objectives);
     this.persist();
@@ -299,13 +324,15 @@ export class OkrStore {
   }
 
   addKr(objectiveId: string, title: string, targetValue: string, dueDate: number): OkrKrItem {
+    const now: number = okrNow();
     const item: OkrKrItem = {
       id: okrNewId('kr'),
       objectiveId: objectiveId,
       title: title,
       targetValue: targetValue,
       dueDate: dueDate,
-      createdAt: okrNow()
+      createdAt: now,
+      updatedAt: now
     };
     this.krs = [item].concat(this.krs);
     this.persist();
@@ -322,7 +349,8 @@ export class OkrStore {
           title: kr.title,
           targetValue: kr.targetValue,
           dueDate: kr.dueDate,
-          createdAt: kr.createdAt
+          createdAt: kr.createdAt,
+          updatedAt: okrNow()
         });
       } else {
         next.push(this.krs[i]);
@@ -334,6 +362,7 @@ export class OkrStore {
 
   deleteKr(krId: string): void {
     this.krs = this.krs.filter((item: OkrKrItem): boolean => item.id !== krId);
+    this.removedKrs.push(krId);
     this.unlinkKr(krId);
     this.persist();
   }
@@ -353,6 +382,7 @@ export class OkrStore {
       this.unlinkKr(krIds[i]);
     }
     this.objectives = this.objectives.filter((item: OkrObjectiveItem): boolean => item.id !== objectiveId);
+    this.removedObjectives.push(objectiveId);
     this.persist();
   }
 
@@ -423,9 +453,45 @@ export class OkrStore {
       if (data.tags !== undefined && data.tags !== null) {
         this.tags = data.tags;
       }
+      this.normalize();
     } catch (err) {
       hilog.error(DOMAIN, 'OkrStore', 'parse failed: %{public}s', JSON.stringify(err));
     }
+  }
+
+  private normalize(): void {
+    const krs: OkrKrItem[] = [];
+    for (let i = 0; i < this.krs.length; i++) {
+      const source: OkrKrItem = this.krs[i];
+      const stamp: number = typeof source.updatedAt === 'number' && source.updatedAt > 0
+        ? source.updatedAt : source.createdAt;
+      krs.push({
+        id: source.id,
+        objectiveId: source.objectiveId,
+        title: source.title,
+        targetValue: source.targetValue,
+        dueDate: source.dueDate,
+        createdAt: source.createdAt,
+        updatedAt: stamp
+      });
+    }
+    this.krs = krs;
+
+    const objectives: OkrObjectiveItem[] = [];
+    for (let i = 0; i < this.objectives.length; i++) {
+      const source: OkrObjectiveItem = this.objectives[i];
+      const stamp: number = typeof source.updatedAt === 'number' && source.updatedAt > 0
+        ? source.updatedAt : source.createdAt;
+      objectives.push({
+        id: source.id,
+        title: source.title,
+        period: source.period,
+        desc: source.desc,
+        createdAt: source.createdAt,
+        updatedAt: stamp
+      });
+    }
+    this.objectives = objectives;
   }
 
   private persist(): void {
@@ -447,6 +513,246 @@ export class OkrStore {
       const e: BusinessError = err as BusinessError;
       hilog.error(DOMAIN, 'OkrStore', 'save error: %{public}s', e.message);
     }
+    if (!this.suppressPush) {
+      persistListener();
+    }
+  }
+
+  // ---------- 云同步 ----------
+
+  buildPushBody(deviceId: string): ApiPushBody {
+    const objectives: ApiObjectiveItem[] = [];
+    for (let i = 0; i < this.objectives.length; i++) {
+      const item: OkrObjectiveItem = this.objectives[i];
+      objectives.push({
+        id: item.id,
+        title: item.title,
+        period: item.period,
+        note: item.desc,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      });
+    }
+    const krs: ApiKrItem[] = [];
+    for (let i = 0; i < this.krs.length; i++) {
+      const item: OkrKrItem = this.krs[i];
+      krs.push({
+        id: item.id,
+        objectiveId: item.objectiveId,
+        title: item.title,
+        targetValue: item.targetValue,
+        dueDate: item.dueDate,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      });
+    }
+    const ideas: ApiIdeaItem[] = [];
+    for (let i = 0; i < this.ideas.length; i++) {
+      const item: OkrIdeaItem = this.ideas[i];
+      ideas.push({
+        id: item.id,
+        title: item.title,
+        note: item.note,
+        tags: item.tags,
+        priority: item.priority,
+        dueDate: item.dueDate,
+        krId: item.krId,
+        done: item.done,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      });
+    }
+    const tags: ApiTagItem[] = [];
+    for (let i = 0; i < this.tags.length; i++) {
+      tags.push({ name: this.tags[i].name, colorIndex: this.tags[i].colorIndex });
+    }
+    const removed: ApiRemoved = {
+      objectives: this.removedObjectives.slice(),
+      krs: this.removedKrs.slice(),
+      ideas: this.removedIdeas.slice(),
+      tags: []
+    };
+    return {
+      deviceId: deviceId,
+      objectives: objectives,
+      krs: krs,
+      ideas: ideas,
+      tags: tags,
+      removed: removed
+    };
+  }
+
+  clearRemoved(): void {
+    this.removedIdeas = [];
+    this.removedKrs = [];
+    this.removedObjectives = [];
+  }
+
+  applyRemote(remote: ApiPullResult): boolean {
+    this.suppressPush = true;
+    let changed: boolean = false;
+
+    for (let i = 0; i < remote.objectives.length; i++) {
+      const incoming: ApiObjectiveItem = remote.objectives[i];
+      const local: OkrObjectiveItem | undefined = this.findObjective(incoming.id);
+      if (local === undefined) {
+        this.objectives = this.objectives.concat([{
+          id: incoming.id,
+          title: incoming.title,
+          period: incoming.period,
+          desc: incoming.note,
+          createdAt: incoming.createdAt,
+          updatedAt: incoming.updatedAt
+        }]);
+        changed = true;
+      } else if (incoming.updatedAt > local.updatedAt) {
+        this.objectives = this.replaceObjective(local, incoming);
+        changed = true;
+      }
+    }
+
+    for (let i = 0; i < remote.krs.length; i++) {
+      const incoming: ApiKrItem = remote.krs[i];
+      const local: OkrKrItem | undefined = this.findKr(incoming.id);
+      if (local === undefined) {
+        this.krs = this.krs.concat([{
+          id: incoming.id,
+          objectiveId: incoming.objectiveId,
+          title: incoming.title,
+          targetValue: incoming.targetValue,
+          dueDate: incoming.dueDate,
+          createdAt: incoming.createdAt,
+          updatedAt: incoming.updatedAt
+        }]);
+        changed = true;
+      } else if (incoming.updatedAt > local.updatedAt) {
+        this.krs = this.replaceKr(local, incoming);
+        changed = true;
+      }
+    }
+
+    for (let i = 0; i < remote.ideas.length; i++) {
+      const incoming: ApiIdeaItem = remote.ideas[i];
+      const local: OkrIdeaItem | undefined = this.findIdea(incoming.id);
+      if (local === undefined) {
+        this.ideas = this.ideas.concat([{
+          id: incoming.id,
+          title: incoming.title,
+          note: incoming.note,
+          tags: incoming.tags,
+          priority: incoming.priority,
+          dueDate: incoming.dueDate,
+          krId: incoming.krId,
+          done: incoming.done,
+          createdAt: incoming.createdAt,
+          updatedAt: incoming.updatedAt
+        }]);
+        changed = true;
+      } else if (incoming.updatedAt > local.updatedAt) {
+        this.ideas = this.replaceIdea(local, incoming);
+        changed = true;
+      }
+    }
+
+    for (let i = 0; i < remote.tags.length; i++) {
+      const incoming: ApiTagItem = remote.tags[i];
+      let exists: boolean = false;
+      for (let j = 0; j < this.tags.length; j++) {
+        if (this.tags[j].name === incoming.name) {
+          exists = true;
+          break;
+        }
+      }
+      if (!exists) {
+        this.tags = this.tags.concat([{ name: incoming.name, colorIndex: incoming.colorIndex }]);
+        changed = true;
+      }
+    }
+
+    this.suppressPush = false;
+    if (changed) {
+      this.persistLocal();
+    }
+    return changed;
+  }
+
+  private persistLocal(): void {
+    const snapshot: OkrSnapshot = {
+      ideas: this.ideas,
+      krs: this.krs,
+      objectives: this.objectives,
+      tags: this.tags
+    };
+    if (this.pref === undefined) {
+      return;
+    }
+    this.pref.put(KEY_SNAPSHOT, JSON.stringify(snapshot)).then(() => {
+      this.pref?.flush();
+    }).catch((err: BusinessError) => {
+      hilog.error(DOMAIN, 'OkrStore', 'save failed: %{public}s', err.message);
+    });
+  }
+
+  private replaceObjective(local: OkrObjectiveItem, incoming: ApiObjectiveItem): OkrObjectiveItem[] {
+    const next: OkrObjectiveItem[] = [];
+    for (let i = 0; i < this.objectives.length; i++) {
+      if (this.objectives[i].id === local.id) {
+        next.push({
+          id: incoming.id,
+          title: incoming.title,
+          period: incoming.period,
+          desc: incoming.note,
+          createdAt: incoming.createdAt,
+          updatedAt: incoming.updatedAt
+        });
+      } else {
+        next.push(this.objectives[i]);
+      }
+    }
+    return next;
+  }
+
+  private replaceKr(local: OkrKrItem, incoming: ApiKrItem): OkrKrItem[] {
+    const next: OkrKrItem[] = [];
+    for (let i = 0; i < this.krs.length; i++) {
+      if (this.krs[i].id === local.id) {
+        next.push({
+          id: incoming.id,
+          objectiveId: incoming.objectiveId,
+          title: incoming.title,
+          targetValue: incoming.targetValue,
+          dueDate: incoming.dueDate,
+          createdAt: incoming.createdAt,
+          updatedAt: incoming.updatedAt
+        });
+      } else {
+        next.push(this.krs[i]);
+      }
+    }
+    return next;
+  }
+
+  private replaceIdea(local: OkrIdeaItem, incoming: ApiIdeaItem): OkrIdeaItem[] {
+    const next: OkrIdeaItem[] = [];
+    for (let i = 0; i < this.ideas.length; i++) {
+      if (this.ideas[i].id === local.id) {
+        next.push({
+          id: incoming.id,
+          title: incoming.title,
+          note: incoming.note,
+          tags: incoming.tags,
+          priority: incoming.priority,
+          dueDate: incoming.dueDate,
+          krId: incoming.krId,
+          done: incoming.done,
+          createdAt: incoming.createdAt,
+          updatedAt: incoming.updatedAt
+        });
+      } else {
+        next.push(this.ideas[i]);
+      }
+    }
+    return next;
   }
 
   private seed(): void {
@@ -457,7 +763,8 @@ export class OkrStore {
       title: '打造个人 OKR 闭环',
       period: '本季度',
       desc: '把零散灵感沉淀成可追踪的目标与关键结果',
-      createdAt: now
+      createdAt: now,
+      updatedAt: now
     };
     const kr1: OkrKrItem = {
       id: okrNewId('kr'),
@@ -465,7 +772,8 @@ export class OkrStore {
       title: '上线 OKR 记录 App 并坚持使用',
       targetValue: '连续记录 30 天',
       dueDate: now + 30 * day,
-      createdAt: now
+      createdAt: now,
+      updatedAt: now
     };
     const kr2: OkrKrItem = {
       id: okrNewId('kr'),
@@ -473,7 +781,8 @@ export class OkrStore {
       title: '每周复盘一次关键结果进度',
       targetValue: '每周 1 次，共 12 周',
       dueDate: now + 84 * day,
-      createdAt: now
+      createdAt: now,
+      updatedAt: now
     };
     this.objectives = [objective];
     this.krs = [kr1, kr2];
