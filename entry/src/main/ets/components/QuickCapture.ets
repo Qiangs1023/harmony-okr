@@ -148,7 +148,7 @@ export struct QuickCapture {
           OkrSelectChip({
             chipText: label,
             active: this.dueActive(label),
-            chipColor: okrTagColor(6),
+            chipColor: okrTagColor(1),
             onPick: (): void => {
               this.applyDue(label);
             }
@@ -182,23 +182,25 @@ export struct QuickCapture {
             this.submit();
           })
 
-        Row({ space: 8 }) {
-          Text(`归属：${this.projectLabel()}`)
-            .fontSize(12)
-            .fontColor($r('app.color.okr_project'))
-            .layoutWeight(1)
-            .maxLines(1)
-            .textOverflow({ overflow: TextOverflow.Ellipsis })
-          Button('不归属')
-            .height(30)
-            .fontSize(11)
-            .backgroundColor($r('app.color.okr_track'))
-            .fontColor($r('app.color.okr_text_secondary'))
-            .onClick((): void => {
-              this.projectId = '';
-            })
+        if (this.projects().length > 0) {
+          Row({ space: 8 }) {
+            Text(`归属：${this.projectLabel()}`)
+              .fontSize(12)
+              .fontColor($r('app.color.okr_project'))
+              .layoutWeight(1)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+            Button('不归属')
+              .height(30)
+              .fontSize(11)
+              .backgroundColor($r('app.color.okr_track'))
+              .fontColor($r('app.color.okr_text_secondary'))
+              .onClick((): void => {
+                this.projectId = '';
+              })
+          }
+          .width('100%')
         }
-        .width('100%')
       }
       .width('100%')
       .padding(12)
@@ -206,7 +208,9 @@ export struct QuickCapture {
       .borderRadius(12)
       .alignItems(HorizontalAlign.Start)
 
-      this.projectRow()
+      if (this.projects().length > 0) {
+        this.projectRow()
+      }
       this.optionRow()
 
       Button(this.canSubmit() ? '记下' : '先写点什么')

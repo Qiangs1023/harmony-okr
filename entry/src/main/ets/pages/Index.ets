@@ -46,10 +46,6 @@ struct Index {
     return OKR_STORE.projectList(false);
   }
 
-  private projectButtonLabel(): string {
-    return this.projectComposerOpen ? '收起' : '＋ 新项目';
-  }
-
   private toggleProjectComposer(): void {
     this.projectComposerOpen = !this.projectComposerOpen;
     this.projTitle = '';
@@ -150,13 +146,6 @@ struct Index {
       .catch((error: BusinessError): void => {
         console.error(`open settings failed: ${error.message}`);
       });
-  }
-
-  private objectiveButtonLabel(): string {
-    if (this.objectiveComposerOpen) {
-      return '收起';
-    }
-    return '＋ 新目标';
   }
 
   private toggleObjectiveComposer(): void {
@@ -308,178 +297,184 @@ struct Index {
   }
 
   @Builder
+  fab(icon: string, active: boolean, tint: ResourceColor, onTap: () => void) {
+    Button(icon)
+      .width(56)
+      .height(56)
+      .fontSize(28)
+      .borderRadius(28)
+      .backgroundColor(active ? $r('app.color.okr_track') : tint)
+      .fontColor(active ? $r('app.color.okr_text_secondary') : $r('app.color.okr_on_primary'))
+      .shadow({ radius: 12, color: '#33000000', offsetX: 0, offsetY: 4 })
+      .margin({ right: 20, bottom: 20 })
+      .onClick((): void => {
+        onTap();
+      })
+  }
+
+  @Builder
   goalsTab() {
-    Column({ space: 12 }) {
-      Row() {
+    Stack({ alignContent: Alignment.BottomEnd }) {
+      Column({ space: 12 }) {
         Text('目标与关键结果')
           .fontSize(15)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.okr_text_primary'))
-          .layoutWeight(1)
-        Button(this.objectiveButtonLabel())
-          .height(32)
-          .fontSize(12)
-          .backgroundColor($r('app.color.okr_primary_soft'))
-          .fontColor($r('app.color.okr_primary'))
-          .onClick((): void => {
-            this.toggleObjectiveComposer();
-          })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
+          .width('100%')
 
-      if (this.objectiveComposerOpen) {
-        this.goalComposer()
-      }
-
-      if (this.objectiveList().length === 0) {
-        List() {
-          ListItem() {
-            OkrEmptyHint({
-              hintText: '还没有目标',
-              subText: '点右上角「＋ 新目标」开始设定'
-            })
-          }
+        if (this.objectiveComposerOpen) {
+          this.goalComposer()
         }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-      } else {
-        List({ space: 12 }) {
-          ForEach(this.objectiveList(), (objItem: OkrObjectiveItem) => {
+
+        if (this.objectiveList().length === 0) {
+          List() {
             ListItem() {
-              ObjectiveCard({
-                objectiveId: objItem.id,
-                onOpenKr: (id: string): void => {
-                  this.openKr(id);
-                },
-                onEdit: (id: string): void => {
-                  this.openObjective(id);
-                }
+              OkrEmptyHint({
+                hintText: '还没有目标',
+                subText: '点右下角的加号开始设定'
               })
             }
-          }, (objItem: OkrObjectiveItem): string => objItem.id)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+        } else {
+          List({ space: 12 }) {
+            ForEach(this.objectiveList(), (objItem: OkrObjectiveItem) => {
+              ListItem() {
+                ObjectiveCard({
+                  objectiveId: objItem.id,
+                  onOpenKr: (id: string): void => {
+                    this.openKr(id);
+                  },
+                  onEdit: (id: string): void => {
+                    this.openObjective(id);
+                  }
+                })
+              }
+            }, (objItem: OkrObjectiveItem): string => objItem.id)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
         }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
       }
+      .width('100%')
+      .height('100%')
+      .padding({ left: 16, right: 16, bottom: 88 })
+
+      this.fab(this.objectiveComposerOpen ? '－' : '＋', this.objectiveComposerOpen,
+        $r('app.color.okr_primary'), (): void => {
+          this.toggleObjectiveComposer();
+        })
     }
     .width('100%')
     .height('100%')
-    .padding({ left: 16, right: 16 })
   }
 
   @Builder
   projectsTab() {
-    Column({ space: 12 }) {
-      Row() {
+    Stack({ alignContent: Alignment.BottomEnd }) {
+      Column({ space: 12 }) {
         Text('项目')
           .fontSize(15)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('app.color.okr_text_primary'))
-          .layoutWeight(1)
-        Button(this.projectButtonLabel())
-          .height(32)
-          .fontSize(12)
-          .backgroundColor($r('app.color.okr_project_soft'))
-          .fontColor($r('app.color.okr_project'))
-          .onClick((): void => {
-            this.toggleProjectComposer();
-          })
-      }
-      .width('100%')
-      .alignItems(VerticalAlign.Center)
+          .width('100%')
 
-      if (this.projectComposerOpen) {
-        this.projectComposer()
-      }
-
-      if (this.projectList().length === 0) {
-        List() {
-          ListItem() {
-            OkrEmptyHint({
-              hintText: '还没有项目',
-              subText: '项目用于把目标、KR、任务串成一条线'
-            })
-          }
+        if (this.projectComposerOpen) {
+          this.projectComposer()
         }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-      } else {
-        List({ space: 12 }) {
-          ForEach(this.projectList(), (projItem: OkrProjectItem) => {
+
+        if (this.projectList().length === 0) {
+          List() {
             ListItem() {
-              ProjectCard({
-                projectId: projItem.id,
-                onOpen: (id: string): void => {
-                  this.openProject(id);
-                }
+              OkrEmptyHint({
+                hintText: '还没有项目',
+                subText: '点右下角的加号，把目标、KR、任务串成一条线'
               })
             }
-          }, (projItem: OkrProjectItem): string => projItem.id)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
+        } else {
+          List({ space: 12 }) {
+            ForEach(this.projectList(), (projItem: OkrProjectItem) => {
+              ListItem() {
+                ProjectCard({
+                  projectId: projItem.id,
+                  onOpen: (id: string): void => {
+                    this.openProject(id);
+                  }
+                })
+              }
+            }, (projItem: OkrProjectItem): string => projItem.id)
+          }
+          .width('100%')
+          .layoutWeight(1)
+          .scrollBar(BarState.Off)
         }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
       }
+      .width('100%')
+      .height('100%')
+      .padding({ left: 16, right: 16, bottom: 88 })
+
+      this.fab(this.projectComposerOpen ? '－' : '＋', this.projectComposerOpen,
+        $r('app.color.okr_project'), (): void => {
+          this.toggleProjectComposer();
+        })
     }
     .width('100%')
     .height('100%')
-    .padding({ left: 16, right: 16 })
   }
 
   build() {
-    Column() {
-      if (SESSION.isLoggedIn()) {
-        Navigation(this.pathStack) {
-          PageShell() {
-            Column({ space: 12 }) {
-              this.homeHeader()
-              Tabs({ index: this.currentTab }) {
-                TabContent() {
-                  this.inboxTab()
-                }
-                .tabBar('收件箱')
-
-                TabContent() {
-                  this.goalsTab()
-                }
-                .tabBar('目标')
-
-                TabContent() {
-                  this.projectsTab()
-                }
-                .tabBar('项目')
+    Navigation(this.pathStack) {
+      PageShell() {
+        if (SESSION.isLoggedIn()) {
+          Column({ space: 12 }) {
+            this.homeHeader()
+            Tabs({ index: this.currentTab }) {
+              TabContent() {
+                this.inboxTab()
               }
-              .barMode(BarMode.Fixed)
-              .barHeight(56)
-              .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
-              .backgroundColor($r('app.color.okr_bg'))
-              .onChange((index: number): void => {
-                this.currentTab = index;
-              })
-              .layoutWeight(1)
+              .tabBar('收件箱')
+
+              TabContent() {
+                this.goalsTab()
+              }
+              .tabBar('目标')
+
+              TabContent() {
+                this.projectsTab()
+              }
+              .tabBar('项目')
             }
-            .width('100%')
-            .height('100%')
-            .padding({ left: 16, right: 16, top: 12 })
+            .barMode(BarMode.Fixed)
+            .barHeight(56)
+            .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
             .backgroundColor($r('app.color.okr_bg'))
+            .onChange((index: number): void => {
+              this.currentTab = index;
+            })
+            .layoutWeight(1)
           }
+          .width('100%')
+          .height('100%')
+          .padding({ left: 16, right: 16, top: 12 })
+          .backgroundColor($r('app.color.okr_bg'))
+        } else {
+          LoginPanel({
+            onSignedIn: (): void => {
+              SYNC.start();
+            }
+          })
         }
-        .mode(NavigationMode.Stack)
-        .hideTitleBar(true)
-        .width('100%')
-        .height('100%')
-      } else {
-        LoginPanel({
-          onSignedIn: (): void => {
-            SYNC.start();
-          }
-        })
       }
     }
+    .mode(NavigationMode.Stack)
+    .hideTitleBar(true)
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.okr_bg'))
