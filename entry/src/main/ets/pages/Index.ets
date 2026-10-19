@@ -358,7 +358,7 @@ struct Index {
       }
       .width('100%')
       .height('100%')
-      .padding({ left: 16, right: 16, bottom: 88 })
+      .padding({ left: 16, right: 16, bottom: 24 })
 
       this.fab(this.objectiveComposerOpen ? '－' : '＋', this.objectiveComposerOpen,
         $r('app.color.okr_primary'), (): void => {
@@ -415,7 +415,7 @@ struct Index {
       }
       .width('100%')
       .height('100%')
-      .padding({ left: 16, right: 16, bottom: 88 })
+      .padding({ left: 16, right: 16, bottom: 24 })
 
       this.fab(this.projectComposerOpen ? '－' : '＋', this.projectComposerOpen,
         $r('app.color.okr_project'), (): void => {
@@ -449,6 +449,7 @@ struct Index {
               .tabBar('项目')
             }
             .barMode(BarMode.Fixed)
+            .barPosition(BarPosition.End)
             .barHeight(56)
             .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
             .backgroundColor($r('app.color.okr_bg'))
