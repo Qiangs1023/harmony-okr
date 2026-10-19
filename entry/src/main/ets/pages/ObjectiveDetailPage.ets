@@ -1,6 +1,6 @@
 import { OkrProjectItem } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
-import { PageShell } from '../components/PageShell';
+import { PageShell, SectionCard } from '../components/PageShell';
 
 interface ObjectiveRouteParam {
   objectiveId: string;
@@ -96,7 +96,7 @@ export struct ObjectiveDetailPage {
         this.topBar()
 
         Column({ space: 14 }) {
-          Column({ space: 10 }) {
+          SectionCard({ cardTitle: '基本信息' }) {
             TextInput({ placeholder: '目标名称', text: this.titleDraft })
               .height(42)
               .fontSize(14)
@@ -121,7 +121,9 @@ export struct ObjectiveDetailPage {
               .onChange((value: string): void => {
                 this.descDraft = value;
               })
+          }
 
+          SectionCard({ cardTitle: '归属项目', cardHint: '把目标挂到项目下' }) {
             Text(this.projectLabel())
               .fontSize(13)
               .fontColor($r('app.color.okr_text_secondary'))
@@ -163,21 +165,17 @@ export struct ObjectiveDetailPage {
               .alignItems(HorizontalAlign.Start)
             }
 
-            Button('保存修改')
-              .width('100%')
-              .height(44)
-              .fontSize(15)
-              .backgroundColor($r('app.color.okr_primary'))
-              .fontColor($r('app.color.okr_on_primary'))
-              .onClick((): void => {
-                this.commit();
-              })
           }
-          .width('100%')
-          .padding(14)
-          .backgroundColor($r('app.color.okr_card'))
-          .borderRadius(14)
-          .alignItems(HorizontalAlign.Start)
+
+          Button('保存修改')
+            .width('100%')
+            .height(46)
+            .fontSize(15)
+            .backgroundColor($r('app.color.okr_primary'))
+            .fontColor($r('app.color.okr_on_primary'))
+            .onClick((): void => {
+              this.commit();
+            })
         }
         .width('100%')
         .padding({ left: 16, right: 16, bottom: 24 })

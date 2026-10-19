@@ -1,7 +1,7 @@
 import { BusinessError } from '@kit.BasicServicesKit';
 import { okrTagColor, OkrIdeaItem, OkrKrItem, OkrObjectiveItem } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
-import { PageShell } from '../components/PageShell';
+import { PageShell, SectionCard } from '../components/PageShell';
 
 interface ProjectRouteParam {
   projectId: string;
@@ -101,7 +101,7 @@ export struct ProjectDetailPage {
         this.topBar()
 
         Column({ space: 14 }) {
-          Column({ space: 10 }) {
+          SectionCard({ cardTitle: '基本信息' }) {
             TextInput({ placeholder: '项目名称', text: this.titleDraft })
               .height(42)
               .fontSize(14)
@@ -151,7 +151,9 @@ export struct ProjectDetailPage {
                 })
             }
             .width('100%')
+          }
 
+          SectionCard({ cardTitle: '保存' }) {
             Button('保存修改')
               .width('100%')
               .height(44)
@@ -162,96 +164,76 @@ export struct ProjectDetailPage {
                 this.commit();
               })
           }
-          .width('100%')
-          .padding(14)
-          .backgroundColor($r('app.color.okr_card'))
-          .borderRadius(14)
-          .alignItems(HorizontalAlign.Start)
 
-          Column({ space: 8 }) {
-            Text(`任务完成度 ${this.progress()}%`)
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.okr_text_primary'))
+          SectionCard({ cardTitle: '任务完成度', cardHint: `${this.progress()}%` }) {
             Progress({ total: 100, value: this.progress() })
               .width('100%')
-              .height(6)
+              .height(8)
               .color($r('app.color.okr_project'))
               .backgroundColor($r('app.color.okr_track'))
           }
-          .width('100%')
-          .padding(14)
-          .backgroundColor($r('app.color.okr_card'))
-          .borderRadius(14)
-          .alignItems(HorizontalAlign.Start)
 
           if (this.objectives().length > 0) {
-            Text(`关联目标 ${this.objectives().length}`)
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.okr_text_primary'))
-          }
-          ForEach(this.objectives(), (item: OkrObjectiveItem) => {
-            Column({ space: 3 }) {
-              Text(item.title)
-                .fontSize(13)
-                .fontColor($r('app.color.okr_text_primary'))
-              Text(item.period.length > 0 ? item.period : '未设周期')
-                .fontSize(11)
-                .fontColor($r('app.color.okr_text_tertiary'))
+            SectionCard({ cardTitle: `关联目标 ${this.objectives().length}` }) {
+              ForEach(this.objectives(), (item: OkrObjectiveItem): void => {
+                Column({ space: 3 }) {
+                  Text(item.title)
+                    .fontSize(13)
+                    .fontColor($r('app.color.okr_text_primary'))
+                  Text(item.period.length > 0 ? item.period : '未设周期')
+                    .fontSize(11)
+                    .fontColor($r('app.color.okr_text_tertiary'))
+                }
+                .width('100%')
+                .padding(12)
+                .backgroundColor($r('app.color.okr_bg'))
+                .borderRadius(10)
+                .alignItems(HorizontalAlign.Start)
+              }, (item: OkrObjectiveItem): string => item.id)
             }
-            .width('100%')
-            .padding(12)
-            .backgroundColor($r('app.color.okr_card'))
-            .borderRadius(12)
-            .alignItems(HorizontalAlign.Start)
-          }, (item: OkrObjectiveItem): string => item.id)
+          }
 
           if (this.krs().length > 0) {
-            Text(`关联关键结果 ${this.krs().length}`)
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.okr_text_primary'))
-          }
-          ForEach(this.krs(), (item: OkrKrItem) => {
-            Column({ space: 3 }) {
-              Text(item.title)
-                .fontSize(13)
-                .fontColor($r('app.color.okr_text_primary'))
-              Text(item.targetValue.length > 0 ? item.targetValue : '未设衡量指标')
-                .fontSize(11)
-                .fontColor($r('app.color.okr_text_tertiary'))
+            SectionCard({ cardTitle: `关联关键结果 ${this.krs().length}` }) {
+              ForEach(this.krs(), (item: OkrKrItem): void => {
+                Column({ space: 3 }) {
+                  Text(item.title)
+                    .fontSize(13)
+                    .fontColor($r('app.color.okr_text_primary'))
+                  Text(item.targetValue.length > 0 ? item.targetValue : '未设衡量指标')
+                    .fontSize(11)
+                    .fontColor($r('app.color.okr_text_tertiary'))
+                }
+                .width('100%')
+                .padding(12)
+                .backgroundColor($r('app.color.okr_bg'))
+                .borderRadius(10)
+                .alignItems(HorizontalAlign.Start)
+              }, (item: OkrKrItem): string => item.id)
             }
-            .width('100%')
-            .padding(12)
-            .backgroundColor($r('app.color.okr_card'))
-            .borderRadius(12)
-            .alignItems(HorizontalAlign.Start)
-          }, (item: OkrKrItem): string => item.id)
+          }
 
           if (this.ideas().length > 0) {
-            Text(`关联任务 ${this.ideas().length}`)
-              .fontSize(14)
-              .fontWeight(FontWeight.Bold)
-              .fontColor($r('app.color.okr_text_primary'))
-          }
-          ForEach(this.ideas(), (item: OkrIdeaItem) => {
-            Row() {
-              Text(item.title)
-                .fontSize(13)
-                .fontColor(item.done ? $r('app.color.okr_text_tertiary') : $r('app.color.okr_text_primary'))
-                .layoutWeight(1)
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-              Text(item.done ? '已完成' : '进行中')
-                .fontSize(11)
-                .fontColor($r('app.color.okr_text_tertiary'))
+            SectionCard({ cardTitle: `关联任务 ${this.ideas().length}` }) {
+              ForEach(this.ideas(), (item: OkrIdeaItem): void => {
+                Row({ space: 8 }) {
+                  Text(item.title)
+                    .fontSize(13)
+                    .fontColor(item.done ? $r('app.color.okr_text_tertiary') : $r('app.color.okr_text_primary'))
+                    .layoutWeight(1)
+                    .maxLines(1)
+                    .textOverflow({ overflow: TextOverflow.Ellipsis })
+                  Text(item.done ? '已完成' : '进行中')
+                    .fontSize(11)
+                    .fontColor($r('app.color.okr_text_tertiary'))
+                }
+                .width('100%')
+                .padding(12)
+                .backgroundColor($r('app.color.okr_bg'))
+                .borderRadius(10)
+              }, (item: OkrIdeaItem): string => item.id)
             }
-            .width('100%')
-            .padding(12)
-            .backgroundColor($r('app.color.okr_card'))
-            .borderRadius(12)
-          }, (item: OkrIdeaItem): string => item.id)
+          }
         }
         .width('100%')
         .padding({ left: 16, right: 16, bottom: 24 })

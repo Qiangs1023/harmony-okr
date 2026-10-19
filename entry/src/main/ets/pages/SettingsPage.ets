@@ -1,7 +1,7 @@
 import { OkrThemeMode, THEME } from '../store/ThemeStore';
 import { SESSION } from '../store/SessionStore';
 import { SYNC } from '../store/SyncService';
-import { PageShell } from '../components/PageShell';
+import { PageShell, SectionCard } from '../components/PageShell';
 
 @ComponentV2
 export struct SettingsPage {
@@ -80,46 +80,42 @@ export struct SettingsPage {
 
         Column({ space: 8 }) {
           this.section('外观')
-          Row({ space: 8 }) {
-            this.themeButton(OkrThemeMode.System, '跟随系统')
-            this.themeButton(OkrThemeMode.Light, '浅色')
-            this.themeButton(OkrThemeMode.Dark, '深色')
-          }
-          .width('100%')
-          Text(`当前：${THEME.modeLabel()}`)
-            .fontSize(11)
-            .fontColor($r('app.color.okr_text_tertiary'))
+          SectionCard({ cardTitle: '外观', cardHint: THEME.modeLabel() }) {
+            Row({ space: 8 }) {
+              this.themeButton(OkrThemeMode.System, '跟随系统')
+              this.themeButton(OkrThemeMode.Light, '浅色')
+              this.themeButton(OkrThemeMode.Dark, '深色')
+            }
             .width('100%')
-            .padding({ left: 4 })
+          }
 
           this.section('云同步')
-          Row() {
-            Column({ space: 3 }) {
-              Text(SESSION.username.length > 0 ? SESSION.username : '未登录')
-                .fontSize(14)
-                .fontColor($r('app.color.okr_text_primary'))
-              Text(this.healthText())
-                .fontSize(11)
-                .fontColor($r('app.color.okr_text_tertiary'))
+          SectionCard({ cardTitle: '云同步' }) {
+            Row() {
+              Column({ space: 3 }) {
+                Text(SESSION.username.length > 0 ? SESSION.username : '未登录')
+                  .fontSize(14)
+                  .fontColor($r('app.color.okr_text_primary'))
+                Text(this.healthText())
+                  .fontSize(11)
+                  .fontColor($r('app.color.okr_text_tertiary'))
+              }
+              .alignItems(HorizontalAlign.Start)
+              .layoutWeight(1)
+              Button('立即同步')
+                .height(32)
+                .fontSize(12)
+                .backgroundColor($r('app.color.okr_primary_soft'))
+                .fontColor($r('app.color.okr_primary'))
+                .onClick((): void => {
+                  SYNC.syncNow();
+                })
             }
-            .alignItems(HorizontalAlign.Start)
-            .layoutWeight(1)
-            Button('立即同步')
-              .height(32)
-              .fontSize(12)
-              .backgroundColor($r('app.color.okr_primary_soft'))
-              .fontColor($r('app.color.okr_primary'))
-              .onClick((): void => {
-                SYNC.syncNow();
-              })
+            .width('100%')
           }
-          .width('100%')
-          .padding(14)
-          .backgroundColor($r('app.color.okr_card'))
-          .borderRadius(12)
 
           this.section('服务器')
-          Column({ space: 8 }) {
+          SectionCard({ cardTitle: '服务器' }) {
             TextInput({ placeholder: '服务器地址', text: this.serverUrl })
               .height(40)
               .fontSize(12)
@@ -152,11 +148,6 @@ export struct SettingsPage {
             }
             .width('100%')
           }
-          .width('100%')
-          .padding(14)
-          .backgroundColor($r('app.color.okr_card'))
-          .borderRadius(12)
-          .alignItems(HorizontalAlign.Start)
 
           this.section('账户')
           Button('退出登录')

@@ -8,6 +8,7 @@ import {
   okrFormatDate
 } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
+import { PageShell, SectionCard } from '../components/PageShell';
 import { IdeaCard } from '../components/IdeaCard';
 import { OkrEmptyHint, OkrProgressTrack } from '../components/OkrCommon';
 
@@ -239,183 +240,151 @@ struct KrDetailPage {
 
   build() {
     NavDestination() {
-      Column({ space: 14 }) {
-        this.topBar()
+      PageShell() {
+        Column({ space: 14 }) {
+          this.topBar()
 
-        Scroll() {
-          Column({ space: 16 }) {
-            Column({ space: 6 }) {
-              this.sectionLabel('所属目标')
-              Text(this.objectiveName())
-                .fontSize(13)
-                .fontColor($r('app.color.okr_text_secondary'))
-                .width('100%')
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: 6 }) {
-              this.sectionLabel('关键结果')
-              TextInput({ placeholder: '例如「连续记录 30 天」', text: this.titleDraft })
-                .height(42)
-                .fontSize(15)
-                .backgroundColor($r('app.color.okr_bg'))
-                .borderRadius(12)
-                .onChange((value: string): void => {
-                  this.titleDraft = value;
-                  this.dirty = true;
-                })
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: 6 }) {
-              this.sectionLabel('衡量指标')
-              TextInput({ placeholder: '例如「30 篇复盘」', text: this.targetDraft })
-                .height(42)
-                .fontSize(14)
-                .backgroundColor($r('app.color.okr_bg'))
-                .borderRadius(12)
-                .onChange((value: string): void => {
-                  this.targetDraft = value;
-                  this.dirty = true;
-                })
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Row({ space: 8 }) {
-              Button(this.dueLabel())
-                .layoutWeight(1)
-                .height(38)
-                .fontSize(13)
-                .backgroundColor($r('app.color.okr_bg'))
-                .fontColor($r('app.color.okr_text_primary'))
-                .onClick((): void => {
-                  this.pickDate();
-                })
-              Text(this.dueText())
-                .height(38)
-                .fontSize(12)
-                .fontColor($r('app.color.okr_text_secondary'))
-                .padding({ left: 4 })
-              Text('保存')
-                .height(38)
-                .fontSize(13)
-                .fontColor($r('app.color.okr_primary'))
-                .padding({ left: 12 })
-                .textAlign(TextAlign.Center)
-                .onClick((): void => {
-                  this.save();
-                })
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-
-            Column({ space: 8 }) {
-              Row() {
-                Text(`进度 ${OKR_STORE.krProgress(this.krId)}%`)
-                  .fontSize(13)
-                  .fontWeight(FontWeight.Medium)
-                  .fontColor($r('app.color.okr_text_primary'))
-                  .layoutWeight(1)
-                Text(this.targetText())
-                  .fontSize(12)
-                  .fontColor($r('app.color.okr_text_secondary'))
-              }
-              .width('100%')
-              .alignItems(VerticalAlign.Center)
-              OkrProgressTrack({ percent: OKR_STORE.krProgress(this.krId), barColor: $r('app.color.okr_primary') })
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: 10 }) {
-              Row() {
-                this.sectionLabel('关联任务')
-                Blank()
-                Text('＋ 新建')
-                  .fontSize(12)
-                  .fontColor($r('app.color.okr_primary'))
-                  .height(26)
-                  .padding({ left: 10 })
-                  .textAlign(TextAlign.Center)
-                  .onClick((): void => {
-                    this.pickerOpen = !this.pickerOpen;
+          Scroll() {
+            Column({ space: 12 }) {
+              SectionCard({ cardTitle: '基本信息', cardHint: this.objectiveName() }) {
+                TextInput({ placeholder: '关键结果，例如「连续记录 30 天」', text: this.titleDraft })
+                  .height(42)
+                  .fontSize(15)
+                  .backgroundColor($r('app.color.okr_bg'))
+                  .borderRadius(12)
+                  .onChange((value: string): void => {
+                    this.titleDraft = value;
+                    this.dirty = true;
+                  })
+                TextInput({ placeholder: '衡量指标，例如「30 篇复盘」', text: this.targetDraft })
+                  .height(42)
+                  .fontSize(14)
+                  .backgroundColor($r('app.color.okr_bg'))
+                  .borderRadius(12)
+                  .onChange((value: string): void => {
+                    this.targetDraft = value;
+                    this.dirty = true;
                   })
               }
-              .width('100%')
-              .alignItems(VerticalAlign.Center)
 
-              if (this.pickerOpen) {
-                Column({ space: 8 }) {
-                  TextInput({ placeholder: '新想法，用 #标签 归类', text: this.newIdeaText })
-                    .height(40)
+              SectionCard({ cardTitle: '截止与进度' }) {
+                Row({ space: 8 }) {
+                  Button(this.dueLabel())
+                    .layoutWeight(1)
+                    .height(38)
                     .fontSize(13)
                     .backgroundColor($r('app.color.okr_bg'))
-                    .borderRadius(10)
-                    .onChange((value: string): void => {
-                      this.newIdeaText = value;
-                    })
-                  Button('创建并关联')
-                    .width('100%')
-                    .height(36)
-                    .fontSize(13)
-                    .backgroundColor($r('app.color.okr_primary'))
-                    .fontColor($r('app.color.okr_on_primary'))
+                    .fontColor($r('app.color.okr_text_primary'))
                     .onClick((): void => {
-                      this.addIdea();
+                      this.pickDate();
                     })
-                  Button('从收件箱选择')
-                    .width('100%')
-                    .height(36)
-                    .fontSize(13)
-                    .backgroundColor($r('app.color.okr_track'))
+                  Text(this.dueText())
+                    .height(38)
+                    .fontSize(12)
                     .fontColor($r('app.color.okr_text_secondary'))
+                    .padding({ left: 4 })
+                  Text('保存')
+                    .height(38)
+                    .fontSize(13)
+                    .fontColor($r('app.color.okr_primary'))
+                    .padding({ left: 12 })
+                    .textAlign(TextAlign.Center)
                     .onClick((): void => {
-                      this.pickerOpen = true;
+                      this.save();
                     })
-                  if (this.unlinkedIdeas().length > 0) {
-                    this.linkPicker()
-                  }
                 }
                 .width('100%')
-                .alignItems(HorizontalAlign.Start)
+                .alignItems(VerticalAlign.Center)
+
+                Row() {
+                  Text(`进度 ${OKR_STORE.krProgress(this.krId)}%`)
+                    .fontSize(13)
+                    .fontWeight(FontWeight.Medium)
+                    .fontColor($r('app.color.okr_text_primary'))
+                    .layoutWeight(1)
+                  Text(this.targetText())
+                    .fontSize(12)
+                    .fontColor($r('app.color.okr_text_secondary'))
+                }
+                .width('100%')
+                .alignItems(VerticalAlign.Center)
+                OkrProgressTrack({ percent: OKR_STORE.krProgress(this.krId), barColor: $r('app.color.okr_primary') })
               }
 
-              if (this.linkedIdeas().length === 0) {
-                OkrEmptyHint({
-                  hintText: '还没有关联任务',
-                  subText: '点右上角「＋ 新建」把想法挂到这个 KR'
-                })
-              } else {
-                Column({ space: 10 }) {
-                  ForEach(this.linkedIdeas(), (ideaItem: OkrIdeaItem) => {
-                    IdeaCard({
-                      ideaId: ideaItem.id,
-                      onOpen: (id: string): void => {
-                        this.openIdea(id);
-                      }
+              SectionCard({ cardTitle: '关联任务', cardHint: '把想法挂到这个 KR' }) {
+                Row() {
+                  Blank()
+                  Text('＋ 新建')
+                    .fontSize(12)
+                    .fontColor($r('app.color.okr_primary'))
+                    .height(26)
+                    .padding({ left: 10 })
+                    .textAlign(TextAlign.Center)
+                    .onClick((): void => {
+                      this.pickerOpen = !this.pickerOpen;
                     })
-                  }, (ideaItem: OkrIdeaItem): string => ideaItem.id)
                 }
                 .width('100%')
+                .alignItems(VerticalAlign.Center)
+
+                if (this.pickerOpen) {
+                  Column({ space: 8 }) {
+                    TextInput({ placeholder: '新想法，用 #标签 归类', text: this.newIdeaText })
+                      .height(40)
+                      .fontSize(13)
+                      .backgroundColor($r('app.color.okr_bg'))
+                      .borderRadius(10)
+                      .onChange((value: string): void => {
+                        this.newIdeaText = value;
+                      })
+                    Button('创建并关联')
+                      .width('100%')
+                      .height(36)
+                      .fontSize(13)
+                      .backgroundColor($r('app.color.okr_primary'))
+                      .fontColor($r('app.color.okr_on_primary'))
+                      .onClick((): void => {
+                        this.addIdea();
+                      })
+                    if (this.unlinkedIdeas().length > 0) {
+                      this.linkPicker()
+                    }
+                  }
+                  .width('100%')
+                  .alignItems(HorizontalAlign.Start)
+                }
+
+                if (this.linkedIdeas().length === 0) {
+                  OkrEmptyHint({
+                    hintText: '还没有关联任务',
+                    subText: '点右上角「＋ 新建」把想法挂到这个 KR'
+                  })
+                } else {
+                  Column({ space: 10 }) {
+                    ForEach(this.linkedIdeas(), (ideaItem: OkrIdeaItem): void => {
+                      IdeaCard({
+                        ideaId: ideaItem.id,
+                        onOpen: (id: string): void => {
+                          this.openIdea(id);
+                        }
+                      })
+                    }, (ideaItem: OkrIdeaItem): string => ideaItem.id)
+                  }
+                  .width('100%')
+                }
               }
             }
             .width('100%')
-            .alignItems(HorizontalAlign.Start)
+            .padding({ bottom: 24 })
           }
+          .layoutWeight(1)
           .width('100%')
-          .padding({ bottom: 24 })
+          .scrollBar(BarState.Off)
         }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
         .width('100%')
+        .height('100%')
+        .padding({ left: 16, right: 16, top: 12 })
       }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 16, right: 16, top: 12 })
-      .backgroundColor($r('app.color.okr_bg'))
     }
     .hideTitleBar(true)
     .backgroundColor($r('app.color.okr_bg'))

@@ -1,6 +1,6 @@
 import { okrTagColor, OkrTagItem } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
-import { PageShell } from '../components/PageShell';
+import { PageShell, SectionCard } from '../components/PageShell';
 
 @ComponentV2
 export struct TagManagePage {
@@ -108,11 +108,7 @@ export struct TagManagePage {
         this.topBar()
 
         Column({ space: 14 }) {
-          Column({ space: 10 }) {
-            Text('新建标签')
-              .fontSize(13)
-              .fontWeight(FontWeight.Medium)
-              .fontColor($r('app.color.okr_text_primary'))
+          SectionCard({ cardTitle: '新建标签' }) {
             TextInput({ placeholder: '标签名', text: this.newTagName })
               .height(40)
               .fontSize(13)
@@ -134,11 +130,6 @@ export struct TagManagePage {
                 this.createTag();
               })
           }
-          .width('100%')
-          .padding(14)
-          .backgroundColor($r('app.color.okr_card'))
-          .borderRadius(14)
-          .alignItems(HorizontalAlign.Start)
 
           if (this.tags().length === 0) {
             Text('还没有标签。在快速记录里写 #标签 会自动创建。')
@@ -148,7 +139,8 @@ export struct TagManagePage {
           }
 
           ForEach(this.tags(), (item: OkrTagItem) => {
-            Column({ space: 8 }) {
+            SectionCard({ cardTitle: item.name }) {
+              Column({ space: 8 }) {
               if (this.editingName === item.name) {
                 TextInput({ placeholder: '新的标签名', text: this.editingValue })
                   .height(38)
@@ -211,12 +203,8 @@ export struct TagManagePage {
                   OKR_STORE.setTagColor(item.name, index);
                 }, item.colorIndex)
               }
+              }
             }
-            .width('100%')
-            .padding(14)
-            .backgroundColor($r('app.color.okr_card'))
-            .borderRadius(14)
-            .alignItems(HorizontalAlign.Start)
           }, (item: OkrTagItem): string => item.name)
         }
         .width('100%')
