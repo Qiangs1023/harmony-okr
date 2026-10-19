@@ -1,4 +1,4 @@
-import { OkrProjectItem } from '../model/OkrModel';
+import { OkrProjectItem, okrFormatDate } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
 import { PageShell, SectionCard } from '../components/PageShell';
 
@@ -12,9 +12,60 @@ export struct ObjectiveDetailPage {
   @Local objectiveId: string = '';
   @Local titleDraft: string = '';
   @Local periodDraft: string = '';
+  @Local startDraft: number = 0;
+  @Local endDraft: number = 0;
   @Local descDraft: string = '';
   @Local projectId: string = '';
   @Local projectPickerOpen: boolean = false;
+
+  private rangeText(): string {
+    const start: string = this.startDraft > 0 ? okrFormatDate(this.startDraft) : '';
+    const end: string = this.endDraft > 0 ? okrFormatDate(this.endDraft) : '';
+    if (start.length === 0 && end.length === 0) {
+      return '未设置时间跨度';
+    }
+    return `${start.length > 0 ? start : '未定'} ~ ${end.length > 0 ? end : '未定'}`;
+  }
+
+  private startLabel(): string {
+    return this.startDraft > 0 ? okrFormatDate(this.startDraft) : '选择起始日';
+  }
+
+  private endLabel(): string {
+    return this.endDraft > 0 ? okrFormatDate(this.endDraft) : '选择截止日';
+  }
+
+  private pickStart(): void {
+    const base: Date = this.startDraft > 0 ? new Date(this.startDraft) : new Date();
+    DatePickerDialog.show({
+      start: new Date(2020, 0, 1),
+      end: new Date(2040, 11, 31),
+      selected: base,
+      onDateAccept: (value: Date): void => {
+        this.startDraft = value.getTime();
+        if (this.endDraft > 0 && this.endDraft < this.startDraft) {
+          this.endDraft = 0;
+        }
+      }
+    });
+  }
+
+  private pickEnd(): void {
+    const base: Date = this.endDraft > 0 ? new Date(this.endDraft) : new Date();
+    DatePickerDialog.show({
+      start: new Date(2020, 0, 1),
+      end: new Date(2040, 11, 31),
+      selected: base,
+      onDateAccept: (value: Date): void => {
+        this.endDraft = value.getTime();
+      }
+    });
+  }
+
+  private clearRange(): void {
+    this.startDraft = 0;
+    this.endDraft = 0;
+  }
 
   private projects(): OkrProjectItem[] {
     return OKR_STORE.projectList(true);
@@ -40,7 +91,9 @@ export struct ObjectiveDetailPage {
     OKR_STORE.updateObjective({
       id: this.objectiveId,
       title: this.titleDraft.trim(),
-      period: this.periodDraft.trim(),
+      period: this.rangeText(),
+      startDate: this.startDraft,
+      endDate: this.endDraft,
       desc: this.descDraft.trim(),
       projectId: this.projectId,
       createdAt: found.createdAt,
@@ -105,14 +158,41 @@ export struct ObjectiveDetailPage {
               .onChange((value: string): void => {
                 this.titleDraft = value;
               })
-            TextInput({ placeholder: '周期，例如「本季度」（选填）', text: this.periodDraft })
-              .height(42)
-              .fontSize(14)
-              .backgroundColor($r('app.color.okr_bg'))
-              .borderRadius(10)
-              .onChange((value: string): void => {
-                this.periodDraft = value;
-              })
+            Row({ space: 8 }) {
+              Button(this.startLabel())
+                .layoutWeight(1)
+                .height(42)
+                .fontSize(13)
+                .backgroundColor($r('app.color.okr_bg'))
+                .fontColor($r('app.color.okr_text_primary'))
+                .onClick((): void => {
+                  this.pickStart();
+                })
+              Button(this.endLabel())
+                .layoutWeight(1)
+                .height(42)
+                .fontSize(13)
+                .backgroundColor($r('app.color.okr_bg'))
+                .fontColor($r('app.color.okr_text_primary'))
+                .onClick((): void => {
+                  this.pickEnd();
+                })
+            }
+            .width('100%')
+
+            Row() {
+              Text(this.rangeText())
+                .fontSize(11)
+                .fontColor($r('app.color.okr_text_tertiary'))
+                .layoutWeight(1)
+              Text('清除')
+                .fontSize(12)
+                .fontColor($r('app.color.okr_text_secondary'))
+                .onClick((): void => {
+                  this.clearRange();
+                })
+            }
+            .width('100%')
             TextArea({ placeholder: '目标描述（选填）', text: this.descDraft })
               .height(80)
               .fontSize(13)
@@ -196,6 +276,8 @@ export struct ObjectiveDetailPage {
       this.objectiveId = param.objectiveId;
       this.titleDraft = found.title;
       this.periodDraft = found.period;
+      this.startDraft = found.startDate;
+      this.endDraft = found.endDate;
       this.descDraft = found.desc;
       this.projectId = found.projectId;
     })

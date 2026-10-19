@@ -57,7 +57,16 @@ export struct IdeaCard {
           OKR_STORE.toggleIdeaDone(this.ideaId);
         })
 
-      Column({ space: 8 }) {
+      Column({ space: 6 }) {
+        if (this.hasKr()) {
+          Text(`KR · ${OKR_STORE.krTitle(this.item().krId)}`)
+            .fontSize(11)
+            .fontColor($r('app.color.okr_primary'))
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .constraintSize({ maxWidth: 220 })
+        }
+
         Text(this.item().title)
           .width('100%')
           .fontSize(15)
@@ -67,46 +76,30 @@ export struct IdeaCard {
           .maxLines(2)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        Scroll() {
-          Row({ space: 6 }) {
-            Text(okrPriorityLabel(this.item().priority))
+        Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.End }) {
+          Text(okrPriorityLabel(this.item().priority))
+            .fontSize(11)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(okrPriorityColor(this.item().priority))
+            .padding({ left: 6, right: 6, top: 2, bottom: 2 })
+            .borderRadius(4)
+            .backgroundColor($r('app.color.okr_track'))
+
+          if (this.item().dueDate > 0) {
+            Text(okrDueText(this.item().dueDate))
               .fontSize(11)
-              .fontWeight(FontWeight.Bold)
-              .fontColor(okrPriorityColor(this.item().priority))
-              .padding({ left: 6, right: 6, top: 2, bottom: 2 })
-              .borderRadius(4)
-              .backgroundColor($r('app.color.okr_track'))
-
-            if (this.item().dueDate > 0) {
-              Text(okrDueText(this.item().dueDate))
-                .fontSize(11)
-                .fontColor(this.dueColor())
-            }
-
-            if (this.hasKr()) {
-              Text(`KR · ${OKR_STORE.krTitle(this.item().krId)}`)
-                .fontSize(11)
-                .fontColor($r('app.color.okr_primary'))
-                .maxLines(1)
-                .textOverflow({ overflow: TextOverflow.Ellipsis })
-                .constraintSize({ maxWidth: 160 })
-            }
-
-            ForEach(this.item().tags, (tagName: string) => {
-              OkrTagChip({
-                chipText: tagName,
-                colorIndex: OKR_STORE.tagColorIndex(tagName),
-                solid: false
-              })
-            }, (tagName: string): string => tagName)
+              .fontColor(this.dueColor())
           }
-          .alignItems(VerticalAlign.Center)
+
+          ForEach(this.item().tags, (tagName: string): void => {
+            OkrTagChip({
+              chipText: tagName,
+              colorIndex: OKR_STORE.tagColorIndex(tagName),
+              solid: false
+            })
+          }, (tagName: string): string => tagName)
         }
-        .scrollable(ScrollDirection.Horizontal)
-        .scrollBar(BarState.Off)
         .width('100%')
-        .height(22)
-        .edgeEffect(EdgeEffect.None)
       }
       .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)

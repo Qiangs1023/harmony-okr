@@ -53,6 +53,8 @@ export interface OkrObjectiveItem {
   id: string;
   title: string;
   period: string;
+  startDate: number;
+  endDate: number;
   desc: string;
   projectId: string;
   createdAt: number;

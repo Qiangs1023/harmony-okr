@@ -338,6 +338,8 @@ export class OkrStore {
       id: okrNewId('obj'),
       title: title,
       period: period,
+      startDate: 0,
+      endDate: 0,
       desc: desc,
       projectId: projectId,
       createdAt: now,
@@ -393,6 +395,8 @@ export class OkrStore {
       if (this.objectives[i].id === objective.id) {
         next.push({
           id: objective.id,
+          startDate: objective.startDate,
+          endDate: objective.endDate,
           title: objective.title,
           period: objective.period,
           desc: objective.desc,
@@ -417,6 +421,8 @@ export class OkrStore {
       id: found.id,
       title: found.title,
       period: found.period,
+      startDate: found.startDate,
+      endDate: found.endDate,
       desc: found.desc,
       projectId: projectId,
       createdAt: found.createdAt,
@@ -812,6 +818,8 @@ export class OkrStore {
         ? source.updatedAt : source.createdAt;
       objectives.push({
         id: source.id,
+        startDate: typeof source.startDate === 'number' ? source.startDate : 0,
+        endDate: typeof source.endDate === 'number' ? source.endDate : 0,
         title: source.title,
         period: source.period,
         desc: source.desc,
@@ -882,6 +890,8 @@ export class OkrStore {
       const item: OkrObjectiveItem = this.objectives[i];
       objectives.push({
         id: item.id,
+        startDate: item.startDate,
+        endDate: item.endDate,
         title: item.title,
         period: item.period,
         note: item.desc,
@@ -979,6 +989,8 @@ export class OkrStore {
       if (local === undefined) {
         this.objectives = this.objectives.concat([{
           id: incoming.id,
+          startDate: incoming.startDate,
+          endDate: incoming.endDate,
           title: incoming.title,
           period: incoming.period,
           desc: incoming.note,
@@ -1108,6 +1120,8 @@ export class OkrStore {
       if (this.objectives[i].id === local.id) {
         next.push({
           id: incoming.id,
+          startDate: incoming.startDate,
+          endDate: incoming.endDate,
           title: incoming.title,
           period: incoming.period,
           desc: incoming.note,
@@ -1203,6 +1217,8 @@ export class OkrStore {
       id: okrNewId('obj'),
       title: '打造个人 OKR 闭环',
       period: '本季度',
+      startDate: now,
+      endDate: now + 90 * day,
       desc: '把零散灵感沉淀成可追踪的目标与关键结果',
       projectId: project.id,
       createdAt: now,

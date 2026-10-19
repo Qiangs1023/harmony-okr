@@ -13,6 +13,8 @@ export interface ApiObjectiveItem {
   id: string;
   title: string;
   period: string;
+  startDate: number;
+  endDate: number;
   note: string;
   projectId: string;
   createdAt: number;
@@ -111,6 +113,8 @@ interface RawObjective {
   id?: string;
   title?: string;
   period?: string;
+  startDate?: number;
+  endDate?: number;
   note?: string;
   projectId?: string;
   createdAt?: number;
@@ -221,6 +225,8 @@ function mapObjective(raw: RawObjective): ApiObjectiveItem | undefined {
     id: id,
     title: s(raw.title),
     period: s(raw.period),
+    startDate: n(raw.startDate),
+    endDate: n(raw.endDate),
     note: s(raw.note),
     projectId: s(raw.projectId),
     createdAt: n(raw.createdAt),

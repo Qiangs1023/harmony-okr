@@ -16,6 +16,7 @@ export struct ProjectDetailPage {
   @Local colorIndex: number = 0;
   @Local archived: boolean = false;
   @Local loaded: boolean = false;
+  @Local taskDraft: string = '';
 
   private commit(): void {
     if (this.titleDraft.trim().length === 0) {
@@ -36,6 +37,21 @@ export struct ProjectDetailPage {
       updatedAt: found.updatedAt
     });
     this.getUIContext().getPromptAction().showToast({ message: '已保存' });
+  }
+
+  private canCreateTask(): boolean {
+    return this.taskDraft.trim().length > 0;
+  }
+
+  private createTask(): void {
+    const title: string = this.taskDraft.trim();
+    if (title.length === 0) {
+      return;
+    }
+    // 新建任务自动归属当前项目
+    OKR_STORE.addIdea(title, 1, 0, this.projectId);
+    this.taskDraft = '';
+    this.getUIContext().getPromptAction().showToast({ message: '已加入项目任务' });
   }
 
   private delete(): void {
@@ -211,6 +227,33 @@ export struct ProjectDetailPage {
                 .alignItems(HorizontalAlign.Start)
               }, (item: OkrKrItem): string => item.id)
             }
+          }
+
+          SectionCard({ cardTitle: '新建任务', cardHint: '自动归属本项目' }) {
+            Row({ space: 8 }) {
+              TextInput({ placeholder: '写点什么，例如「写周报」', text: this.taskDraft })
+                .layoutWeight(1)
+                .height(40)
+                .fontSize(13)
+                .backgroundColor($r('app.color.okr_bg'))
+                .borderRadius(10)
+                .onChange((value: string): void => {
+                  this.taskDraft = value;
+                })
+                .onSubmit((): void => {
+                  this.createTask();
+                })
+              Button('添加')
+                .height(40)
+                .fontSize(13)
+                .backgroundColor($r('app.color.okr_primary'))
+                .fontColor($r('app.color.okr_on_primary'))
+                .enabled(this.canCreateTask())
+                .onClick((): void => {
+                  this.createTask();
+                })
+            }
+            .width('100%')
           }
 
           if (this.ideas().length > 0) {

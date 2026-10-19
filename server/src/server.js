@@ -75,6 +75,8 @@ function mapObjective(r) {
     id: r.id,
     title: r.title,
     period: r.period,
+    startDate: Number(r.start_date) || 0,
+    endDate: Number(r.end_date) || 0,
     note: r.note,
     projectId: r.project_id || '',
     createdAt: Number(r.created_at),
@@ -148,7 +150,7 @@ async function pull(userId, sinceSeq) {
 
   if (ids.objective.size) {
     const r = await pool.query(
-      'SELECT id,title,period,note,project_id,created_at,updated_at FROM objective WHERE user_id=$1 AND deleted=0 AND id = ANY($2)',
+      'SELECT id,title,period,note,project_id,start_date,end_date,created_at,updated_at FROM objective WHERE user_id=$1 AND deleted=0 AND id = ANY($2)',
       [userId, [...ids.objective]]
     );
     out.objectives = r.rows.map(mapObjective);
@@ -218,13 +220,14 @@ async function applyUpsert(client, userId, deviceId, entity, item) {
 
   if (entity === 'objective') {
     await client.query(
-      `INSERT INTO objective (id,user_id,title,period,note,project_id,created_at,updated_at,last_device,deleted)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0)
+      `INSERT INTO objective (id,user_id,title,period,note,project_id,start_date,end_date,created_at,updated_at,last_device,deleted)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,0)
        ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, period=EXCLUDED.period,
-         note=EXCLUDED.note, project_id=EXCLUDED.project_id, updated_at=EXCLUDED.updated_at,
+         note=EXCLUDED.note, project_id=EXCLUDED.project_id, start_date=EXCLUDED.start_date,
+         end_date=EXCLUDED.end_date, updated_at=EXCLUDED.updated_at,
          last_device=EXCLUDED.last_device, deleted=0`,
       [id, userId, str(item.title), str(item.period, 64), str(item.note, 4000), str(item.projectId, 64),
-        created, stamp, deviceId]
+        num(item.startDate), num(item.endDate), created, stamp, deviceId]
     );
   } else if (entity === 'kr') {
     await client.query(
