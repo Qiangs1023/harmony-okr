@@ -33,6 +33,7 @@ struct Index {
   @Local projectComposerOpen: boolean = false;
   @Local projTitle: string = '';
   @Local projDesc: string = '';
+  @Local captureOpen: boolean = false;
 
   private visibleIdeas(): OkrIdeaItem[] {
     return OKR_STORE.visibleIdeas();
@@ -210,14 +211,11 @@ struct Index {
 
   @Builder
   inboxTab() {
-    List({ space: 10 }) {
-      ListItem() {
-        QuickCapture()
-      }
-
-      ListItem() {
-        TagFilterBar()
-      }
+    Stack({ alignContent: Alignment.BottomEnd }) {
+      List({ space: 10 }) {
+        ListItem() {
+          TagFilterBar()
+        }
 
       if (this.visibleIdeas().length === 0) {
         ListItem() {
@@ -238,11 +236,50 @@ struct Index {
           }
         }, (ideaItem: OkrIdeaItem): string => ideaItem.id)
       }
+      }
+      .width('100%')
+      .height('100%')
+      .padding({ left: 16, right: 16 })
+      .scrollBar(BarState.Off)
+
+      Button('＋')
+        .width(56)
+        .height(56)
+        .fontSize(28)
+        .borderRadius(28)
+        .opacity(0.85)
+        .backgroundColor($r('app.color.okr_primary'))
+        .fontColor($r('app.color.okr_on_primary'))
+        .shadow({ radius: 12, color: '#33000000', offsetX: 0, offsetY: 4 })
+        .margin({ right: 20, bottom: 24 })
+        .onClick((): void => {
+          this.captureOpen = true;
+        })
     }
     .width('100%')
     .height('100%')
-    .padding({ left: 16, right: 16 })
-    .scrollBar(BarState.Off)
+  }
+
+  @Builder
+  captureSheet() {
+    Column({ space: 10 }) {
+      Text('快速记录')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.okr_text_primary'))
+        .width('100%')
+
+      QuickCapture({
+        onDone: (): void => {
+          this.captureOpen = false;
+        }
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: 16, right: 16, top: 4, bottom: 20 })
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor($r('app.color.okr_bg'))
   }
 
   @Builder
@@ -476,5 +513,10 @@ struct Index {
     .width('100%')
     .height('100%')
     .backgroundColor($r('app.color.okr_bg'))
+    .bindSheet($$this.captureOpen, this.captureSheet(), {
+      height: SheetSize.MEDIUM,
+      dragBar: true,
+      showClose: true
+    })
   }
 }

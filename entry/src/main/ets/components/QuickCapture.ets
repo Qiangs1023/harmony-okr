@@ -18,6 +18,8 @@ const TAG_CHIP_GAP: number = 8;
 
 @ComponentV2
 export struct QuickCapture {
+  @Event onDone: () => void = (): void => {
+  };
   @Local draft: string = '';
   @Local priority: number = OkrPriority.Medium;
   @Local due: number = 0;
@@ -142,6 +144,7 @@ export struct QuickCapture {
     this.priority = OkrPriority.Medium;
     this.pickedTags = [];
     this.getUIContext().getPromptAction().showToast({ message: '已加入收件箱' });
+    this.onDone();
   }
 
   @Builder
