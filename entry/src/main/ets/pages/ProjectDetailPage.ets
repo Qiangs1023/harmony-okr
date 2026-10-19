@@ -2,6 +2,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import { okrTagColor, OkrIdeaItem, OkrKrItem, OkrObjectiveItem } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
 import { PageShell, SectionCard } from '../components/PageShell';
+import { QuickCapture } from '../components/QuickCapture';
 
 interface ProjectRouteParam {
   projectId: string;
@@ -16,7 +17,7 @@ export struct ProjectDetailPage {
   @Local colorIndex: number = 0;
   @Local archived: boolean = false;
   @Local loaded: boolean = false;
-  @Local taskDraft: string = '';
+  @Local taskSheetOpen: boolean = false;
 
   private commit(): void {
     if (this.titleDraft.trim().length === 0) {
@@ -37,21 +38,6 @@ export struct ProjectDetailPage {
       updatedAt: found.updatedAt
     });
     this.getUIContext().getPromptAction().showToast({ message: '已保存' });
-  }
-
-  private canCreateTask(): boolean {
-    return this.taskDraft.trim().length > 0;
-  }
-
-  private createTask(): void {
-    const title: string = this.taskDraft.trim();
-    if (title.length === 0) {
-      return;
-    }
-    // 新建任务自动归属当前项目
-    OKR_STORE.addIdea(title, 1, 0, this.projectId);
-    this.taskDraft = '';
-    this.getUIContext().getPromptAction().showToast({ message: '已加入项目任务' });
   }
 
   private delete(): void {
@@ -84,6 +70,29 @@ export struct ProjectDetailPage {
   }
 
   @Builder
+  taskSheet() {
+    Column({ space: 10 }) {
+      Text('新建任务')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.okr_text_primary'))
+        .width('100%')
+      QuickCapture({
+        autoFocus: this.taskSheetOpen,
+        forceProjectId: this.projectId,
+        onDone: (): void => {
+          this.taskSheetOpen = false;
+        }
+      })
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: 16, right: 16, top: 4, bottom: 20 })
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor($r('app.color.okr_bg'))
+  }
+
+  @Builder
   topBar() {
     Row() {
       Text('‹ 返回')
@@ -99,12 +108,7 @@ export struct ProjectDetailPage {
         .fontColor($r('app.color.okr_text_primary'))
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
-      Text('删除')
-        .fontSize(14)
-        .fontColor($r('app.color.okr_danger'))
-        .onClick((): void => {
-          this.delete();
-        })
+      Blank()
     }
     .width('100%')
     .height(44)
@@ -114,9 +118,11 @@ export struct ProjectDetailPage {
   build() {
     NavDestination() {
       PageShell() {
-        this.topBar()
-
         Column({ space: 14 }) {
+          this.topBar()
+
+          Scroll() {
+            Column({ space: 12 }) {
           SectionCard({ cardTitle: '基本信息' }) {
             TextInput({ placeholder: '项目名称', text: this.titleDraft })
               .height(42)
@@ -169,17 +175,26 @@ export struct ProjectDetailPage {
             .width('100%')
           }
 
-          SectionCard({ cardTitle: '保存' }) {
-            Button('保存修改')
-              .width('100%')
-              .height(44)
-              .fontSize(15)
-              .backgroundColor($r('app.color.okr_primary'))
-              .fontColor($r('app.color.okr_on_primary'))
-              .onClick((): void => {
-                this.commit();
-              })
-          }
+          Button('保存修改')
+            .width('100%')
+            .height(46)
+            .fontSize(15)
+            .fontWeight(FontWeight.Medium)
+            .backgroundColor($r('app.color.okr_primary'))
+            .fontColor($r('app.color.okr_on_primary'))
+            .onClick((): void => {
+              this.commit();
+            })
+
+          Button('删除项目')
+            .width('100%')
+            .height(46)
+            .fontSize(15)
+            .backgroundColor($r('app.color.okr_card'))
+            .fontColor($r('app.color.okr_danger'))
+            .onClick((): void => {
+              this.delete();
+            })
 
           SectionCard({ cardTitle: '任务完成度', cardHint: `${this.progress()}%` }) {
             Progress({ total: 100, value: this.progress() })
@@ -229,35 +244,13 @@ export struct ProjectDetailPage {
             }
           }
 
-          SectionCard({ cardTitle: '新建任务', cardHint: '自动归属本项目' }) {
-            Row({ space: 8 }) {
-              TextInput({ placeholder: '写点什么，例如「写周报」', text: this.taskDraft })
-                .layoutWeight(1)
-                .height(40)
-                .fontSize(13)
-                .backgroundColor($r('app.color.okr_bg'))
-                .borderRadius(10)
-                .onChange((value: string): void => {
-                  this.taskDraft = value;
-                })
-                .onSubmit((): void => {
-                  this.createTask();
-                })
-              Button('添加')
-                .height(40)
-                .fontSize(13)
-                .backgroundColor($r('app.color.okr_primary'))
-                .fontColor($r('app.color.okr_on_primary'))
-                .enabled(this.canCreateTask())
-                .onClick((): void => {
-                  this.createTask();
-                })
+          SectionCard({
+            cardTitle: `关联任务 ${this.ideas().length}`,
+            headerAction: '＋ 新建',
+            onHeaderAction: (): void => {
+              this.taskSheetOpen = true;
             }
-            .width('100%')
-          }
-
-          if (this.ideas().length > 0) {
-            SectionCard({ cardTitle: `关联任务 ${this.ideas().length}` }) {
+          }) {
               ForEach(this.ideas(), (item: OkrIdeaItem): void => {
                 Row({ space: 8 }) {
                   Text(item.title)
@@ -276,10 +269,23 @@ export struct ProjectDetailPage {
                 .borderRadius(10)
               }, (item: OkrIdeaItem): string => item.id)
             }
+        }
+            .width('100%')
+            .padding({ bottom: 24 })
           }
+          .layoutWeight(1)
+          .width('100%')
+          .scrollBar(BarState.Off)
         }
         .width('100%')
-        .padding({ left: 16, right: 16, bottom: 24 })
+        .height('100%')
+        .padding({ left: 16, right: 16, top: 12 })
+        .bindSheet($$this.taskSheetOpen, this.taskSheet(), {
+          height: SheetSize.FIT_CONTENT,
+          dragBar: true,
+          showClose: true,
+          keyboardAvoidMode: SheetKeyboardAvoidMode.TRANSLATE_AND_RESIZE
+        })
       }
     }
     .hideTitleBar(true)

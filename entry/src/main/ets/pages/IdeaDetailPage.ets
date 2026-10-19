@@ -205,15 +205,7 @@ struct IdeaDetailPage {
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.okr_text_primary'))
         .layoutWeight(1)
-      Text('删除')
-        .fontSize(14)
-        .fontColor($r('app.color.okr_danger'))
-        .height(36)
-        .padding({ left: 12, right: 4 })
-        .textAlign(TextAlign.Center)
-        .onClick((): void => {
-          this.confirmDelete();
-        })
+      Blank()
     }
     .width('100%')
     .height(44)
@@ -441,6 +433,16 @@ struct IdeaDetailPage {
                 .fontColor($r('app.color.okr_on_primary'))
                 .onClick((): void => {
                   this.save();
+                })
+
+              Button('删除这条想法')
+                .width('100%')
+                .height(46)
+                .fontSize(15)
+                .backgroundColor($r('app.color.okr_card'))
+                .fontColor($r('app.color.okr_danger'))
+                .onClick((): void => {
+                  this.confirmDelete();
                 })
             }
             .width('100%')

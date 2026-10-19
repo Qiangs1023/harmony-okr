@@ -20,6 +20,9 @@ export struct PageShell {
 export struct SectionCard {
   @Param cardTitle: string = '';
   @Param cardHint: string = '';
+  @Param headerAction: string = '';
+  @Event onHeaderAction: () => void = (): void => {
+  };
   @BuilderParam content: () => void;
 
   build() {
@@ -35,6 +38,15 @@ export struct SectionCard {
             Text(this.cardHint)
               .fontSize(11)
               .fontColor($r('app.color.okr_text_tertiary'))
+          }
+          if (this.headerAction.length > 0) {
+            Text(this.headerAction)
+              .fontSize(12)
+              .fontColor($r('app.color.okr_primary'))
+              .margin({ left: 10 })
+              .onClick((): void => {
+                this.onHeaderAction();
+              })
           }
         }
         .width('100%')

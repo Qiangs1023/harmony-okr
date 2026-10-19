@@ -19,6 +19,7 @@ const TAG_CHIP_GAP: number = 8;
 @ComponentV2
 export struct QuickCapture {
   @Param autoFocus: boolean = false;
+  @Param forceProjectId: string = '';
   @Event onDone: () => void = (): void => {
   };
   @Local draft: string = '';
@@ -139,7 +140,8 @@ export struct QuickCapture {
       }
       title = `${title} ${suffix.join(' ')}`;
     }
-    OKR_STORE.addIdea(title, this.priority, this.due, this.projectId);
+    const owner: string = this.forceProjectId.length > 0 ? this.forceProjectId : this.projectId;
+    OKR_STORE.addIdea(title, this.priority, this.due, owner);
     this.draft = '';
     this.due = 0;
     this.priority = OkrPriority.Medium;
@@ -313,7 +315,7 @@ export struct QuickCapture {
 
       this.optionRow()
 
-      if (this.projects().length > 0) {
+      if (this.forceProjectId.length === 0 && this.projects().length > 0) {
         this.projectRow()
       }
 

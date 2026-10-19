@@ -179,15 +179,6 @@ struct KrDetailPage {
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.okr_text_primary'))
         .layoutWeight(1)
-      Text('删除')
-        .fontSize(14)
-        .fontColor($r('app.color.okr_danger'))
-        .height(36)
-        .padding({ left: 12, right: 4 })
-        .textAlign(TextAlign.Center)
-        .onClick((): void => {
-          this.confirmDelete();
-        })
     }
     .width('100%')
     .height(44)
@@ -380,6 +371,16 @@ struct KrDetailPage {
           .layoutWeight(1)
           .width('100%')
           .scrollBar(BarState.Off)
+        Button('删除这个关键结果')
+          .width('100%')
+          .height(46)
+          .fontSize(15)
+          .backgroundColor($r('app.color.okr_card'))
+          .fontColor($r('app.color.okr_danger'))
+          .margin({ top: 8 })
+          .onClick((): void => {
+            this.confirmDelete();
+          })
         }
         .width('100%')
         .height('100%')

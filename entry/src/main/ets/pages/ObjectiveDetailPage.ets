@@ -131,12 +131,7 @@ export struct ObjectiveDetailPage {
         .fontColor($r('app.color.okr_text_primary'))
         .layoutWeight(1)
         .textAlign(TextAlign.Center)
-      Text('删除')
-        .fontSize(14)
-        .fontColor($r('app.color.okr_danger'))
-        .onClick((): void => {
-          this.delete();
-        })
+      Blank()
     }
     .width('100%')
     .height(44)
@@ -255,6 +250,16 @@ export struct ObjectiveDetailPage {
             .fontColor($r('app.color.okr_on_primary'))
             .onClick((): void => {
               this.commit();
+            })
+
+          Button('删除这个目标')
+            .width('100%')
+            .height(46)
+            .fontSize(15)
+            .backgroundColor($r('app.color.okr_card'))
+            .fontColor($r('app.color.okr_danger'))
+            .onClick((): void => {
+              this.delete();
             })
         }
         .width('100%')
