@@ -3,26 +3,15 @@ import { OkrKrItem, OkrProjectItem, okrHashTag } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
 import { OkrCardHead, OkrMeter, OkrPageHeader, OkrSolidButton } from '../components/OkrUi';
 
-/** 由 Index 注入的跳转回调：项目列表在 router_map 里是二级页面，拿不到 NavPathStack */
-type ProjectOpener = (projectId: string) => void;
-
-let PROJECT_OPENER: ProjectOpener = (_projectId: string): void => {
-};
-
-export function setProjectOpener(opener: ProjectOpener): void {
-  PROJECT_OPENER = opener;
-}
-
-@Builder
-export function ProjectListBuilder() {
-  ProjectListPage()
-}
-
+/** 项目 Tab：把目标、关键结果、任务串成一条线 */
 @ComponentV2
-struct ProjectListPage {
+export struct ProjectsPage {
   @Local draftOpen: boolean = false;
   @Local projTitle: string = '';
   @Local projDesc: string = '';
+
+  @Event onOpenProject: (projectId: string) => void = (_projectId: string): void => {
+  };
 
   private createProject(): void {
     if (this.projTitle.trim().length === 0) {
@@ -96,7 +85,7 @@ struct ProjectListPage {
     .border({ width: 1, color: $r('app.color.okr_divider') })
     .shadow({ radius: 12, color: '#14111619', offsetX: 0, offsetY: 4 })
     .onClick((): void => {
-      PROJECT_OPENER(project.id);
+      this.onOpenProject(project.id);
     })
   }
 
@@ -145,61 +134,58 @@ struct ProjectListPage {
   }
 
   build() {
-    NavDestination() {
-      Stack({ alignContent: Alignment.BottomEnd }) {
-        Scroll() {
-          Column({ space: 12 }) {
-            OkrPageHeader({
-              eyebrow: `${OKR_STORE.projectList(false).length} 个进行中`,
-              title: '项目',
-              sub: '把目标、关键结果、任务串成一条线'
-            })
+    Stack({ alignContent: Alignment.BottomEnd }) {
+      Scroll() {
+        Column({ space: 12 }) {
+          OkrPageHeader({
+            eyebrow: `${OKR_STORE.projectList(false).length} 个进行中`,
+            title: '项目',
+            sub: '把目标、关键结果、任务串成一条线'
+          })
 
-            if (OKR_STORE.projectList(false).length === 0) {
-              Column({ space: 10 }) {
-                OkrCardHead({ title: '还没有项目' })
-                Text('点右下角的加号，把这季度真正要交付的东西列出来')
-                  .fontSize(12.5)
-                  .fontWeight(FontWeight.Lighter)
-                  .lineHeight(20)
-                  .fontColor($r('app.color.okr_text_tertiary'))
-              }
-              .width('100%')
-              .padding(18)
-              .alignItems(HorizontalAlign.Start)
-              .backgroundColor($r('app.color.okr_card'))
-              .borderRadius(16)
-              .border({ width: 1, color: $r('app.color.okr_divider') })
-            } else {
-              ForEach(OKR_STORE.projectList(false), (project: OkrProjectItem): void => {
-                this.projectCard(project)
-              }, (project: OkrProjectItem): string => project.id)
+          if (OKR_STORE.projectList(false).length === 0) {
+            Column({ space: 10 }) {
+              OkrCardHead({ title: '还没有项目' })
+              Text('点右下角的加号，把这季度真正要交付的东西列出来')
+                .fontSize(12.5)
+                .fontWeight(FontWeight.Lighter)
+                .lineHeight(20)
+                .fontColor($r('app.color.okr_text_tertiary'))
             }
+            .width('100%')
+            .padding(18)
+            .alignItems(HorizontalAlign.Start)
+            .backgroundColor($r('app.color.okr_card'))
+            .borderRadius(16)
+            .border({ width: 1, color: $r('app.color.okr_divider') })
+          } else {
+            ForEach(OKR_STORE.projectList(false), (project: OkrProjectItem): void => {
+              this.projectCard(project)
+            }, (project: OkrProjectItem): string => project.id)
           }
-          .width('100%')
-          .padding({ left: 18, right: 18, top: 14, bottom: 24 })
         }
         .width('100%')
-        .height('100%')
-        .scrollBar(BarState.Off)
-
-        Button('＋')
-          .width(52)
-          .height(52)
-          .fontSize(26)
-          .borderRadius(26)
-          .backgroundColor($r('app.color.okr_text_primary'))
-          .fontColor($r('app.color.okr_on_primary'))
-          .shadow({ radius: 12, color: '#33000000', offsetX: 0, offsetY: 4 })
-          .margin({ right: 20, bottom: 20 })
-          .onClick((): void => {
-            this.draftOpen = !this.draftOpen;
-          })
+        .padding({ left: 18, right: 18, top: 14, bottom: 24 })
       }
       .width('100%')
       .height('100%')
+      .scrollBar(BarState.Off)
+
+      Button('＋')
+        .width(52)
+        .height(52)
+        .fontSize(26)
+        .borderRadius(26)
+        .backgroundColor($r('app.color.okr_text_primary'))
+        .fontColor($r('app.color.okr_on_primary'))
+        .shadow({ radius: 12, color: '#33000000', offsetX: 0, offsetY: 4 })
+        .margin({ right: 20, bottom: 20 })
+        .onClick((): void => {
+          this.draftOpen = !this.draftOpen;
+        })
     }
-    .title('项目')
+    .width('100%')
+    .height('100%')
     .bindSheet($$this.draftOpen, this.composer(), {
       height: SheetSize.FIT_CONTENT,
       dragBar: true,

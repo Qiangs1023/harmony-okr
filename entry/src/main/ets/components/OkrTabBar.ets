@@ -7,7 +7,7 @@ export struct OkrTabBar {
   };
 
   private labels(): string[] {
-    return ['今天', '目标', '对齐', '洞察'];
+    return ['今天', '目标', '项目', '洞察'];
   }
 
   @Builder

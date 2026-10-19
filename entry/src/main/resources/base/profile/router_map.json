@@ -29,11 +29,6 @@
       "name": "Settings",
       "buildFunction": "SettingsBuilder",
       "pageSourceFile": "src/main/ets/pages/SettingsPage.ets"
-    },
-    {
-      "name": "ProjectList",
-      "buildFunction": "ProjectListBuilder",
-      "pageSourceFile": "src/main/ets/pages/ProjectListPage.ets"
     }
   ]
 }

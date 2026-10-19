@@ -13,9 +13,8 @@ import { SESSION } from '../store/SessionStore';
 import { SYNC } from '../store/SyncService';
 import { GoalsPage } from '../tabs/GoalsPage';
 import { InsightsPage } from '../tabs/InsightsPage';
-import { ReviewPage } from '../tabs/ReviewPage';
+import { ProjectsPage } from '../tabs/ProjectsPage';
 import { TodayPage } from '../tabs/TodayPage';
-import { setProjectOpener } from '../pages/ProjectListPage';
 
 @Entry
 @ComponentV2
@@ -72,19 +71,6 @@ struct Index {
     this.pathStack.pushDestination({ name: 'Settings' })
       .catch((error: BusinessError): void => {
         console.error(`open settings failed: ${error.message}`);
-      });
-  }
-
-  aboutToAppear(): void {
-    setProjectOpener((projectId: string): void => {
-      this.openProject(projectId);
-    });
-  }
-
-  private openProjects(): void {
-    this.pathStack.pushDestination({ name: 'ProjectList' })
-      .catch((error: BusinessError): void => {
-        console.error(`open projects failed: ${error.message}`);
       });
   }
 
@@ -247,8 +233,12 @@ struct Index {
   }
 
   @Builder
-  reviewView() {
-    ReviewPage()
+  projectsView() {
+    ProjectsPage({
+      onOpenProject: (projectId: string): void => {
+        this.openProject(projectId);
+      }
+    })
   }
 
   @Builder
@@ -263,12 +253,6 @@ struct Index {
   @Builder
   topActions() {
     Row({ space: 16 }) {
-      Text('项目')
-        .fontSize(12)
-        .fontColor($r('app.color.okr_text_secondary'))
-        .onClick((): void => {
-          this.openProjects();
-        })
       Text('标签')
         .fontSize(12)
         .fontColor($r('app.color.okr_text_secondary'))
@@ -292,7 +276,7 @@ struct Index {
     } else if (this.currentTab === 1) {
       this.goalsView()
     } else if (this.currentTab === 2) {
-      this.reviewView()
+      this.projectsView()
     } else {
       this.insightsView()
     }
