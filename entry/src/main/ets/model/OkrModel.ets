@@ -61,12 +61,23 @@ export interface OkrObjectiveItem {
   updatedAt: number;
 }
 
+/** 周记（对齐页）：每周一句话 */
+export interface OkrReviewItem {
+  id: string;
+  objectiveId: string;
+  weekKey: string;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface OkrSnapshot {
   ideas: OkrIdeaItem[];
   krs: OkrKrItem[];
   objectives: OkrObjectiveItem[];
   tags: OkrTagItem[];
   projects: OkrProjectItem[];
+  reviews: OkrReviewItem[];
 }
 
 export interface OkrParsedText {
@@ -91,15 +102,16 @@ export interface OkrObjectiveParam {
   objectiveId: string;
 }
 
+/** 标签色板：向白瓷风格靠拢的低饱和色 */
 export const OKR_TAG_PALETTE: string[] = [
-  '#4E7BFF',
-  '#12B886',
-  '#F59F00',
-  '#E8590C',
-  '#AE3EC9',
-  '#1098AD',
-  '#F03E3E',
-  '#5C7CFA'
+  '#2F55D4',
+  '#3F7D58',
+  '#C98A2E',
+  '#C0402C',
+  '#7A5AA8',
+  '#3E8C9E',
+  '#A75C7A',
+  '#6B7280'
 ];
 
 export function okrPriorityLabel(priority: number): string {

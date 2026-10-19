@@ -12,7 +12,8 @@ const ENTITIES = [
   ['kr', 'krs'],
   ['idea', 'ideas'],
   ['project', 'projects'],
-  ['tag', 'tags']
+  ['tag', 'tags'],
+  ['review', 'reviews']
 ];
 
 function send(res, code, obj) {
@@ -125,6 +126,17 @@ function mapProject(r) {
   };
 }
 
+function mapReview(r) {
+  return {
+    id: r.id,
+    objectiveId: r.objective_id || '',
+    weekKey: r.week_key,
+    text: r.text,
+    createdAt: Number(r.created_at),
+    updatedAt: Number(r.updated_at)
+  };
+}
+
 function mapTag(r) {
   return { name: r.name, colorIndex: Number(r.color_index), sortIndex: Number(r.sort_index) };
 }
@@ -141,12 +153,18 @@ async function pull(userId, sinceSeq) {
     [userId, sinceSeq, PAGE_LIMIT]
   );
   const cursor = changes.length ? Number(changes[changes.length - 1].seq) : sinceSeq;
-  const ids = { objective: new Set(), kr: new Set(), idea: new Set(), tag: new Set(), project: new Set() };
+  const ids = {
+    objective: new Set(), kr: new Set(), idea: new Set(),
+    tag: new Set(), project: new Set(), review: new Set()
+  };
   for (const c of changes) {
     if (ids[c.entity]) ids[c.entity].add(c.entity_id);
   }
 
-  const out = { cursor, hasMore: changes.length === PAGE_LIMIT, objectives: [], krs: [], ideas: [], tags: [], projects: [] };
+  const out = {
+    cursor, hasMore: changes.length === PAGE_LIMIT,
+    objectives: [], krs: [], ideas: [], tags: [], projects: [], reviews: []
+  };
 
   if (ids.objective.size) {
     const r = await pool.query(
@@ -182,6 +200,13 @@ async function pull(userId, sinceSeq) {
       [userId, [...ids.tag]]
     );
     out.tags = r.rows.map(mapTag);
+  }
+  if (ids.review.size) {
+    const r = await pool.query(
+      'SELECT id,objective_id,week_key,text,created_at,updated_at FROM review WHERE user_id=$1 AND deleted=0 AND id = ANY($2) ORDER BY created_at DESC',
+      [userId, [...ids.review]]
+    );
+    out.reviews = r.rows.map(mapReview);
   }
   return out;
 }
@@ -250,6 +275,16 @@ async function applyUpsert(client, userId, deviceId, entity, item) {
       [id, userId, str(item.title), str(item.note, 4000), JSON.stringify(strArr(item.tags)),
         Math.min(2, Math.max(0, num(item.priority))), num(item.dueDate), str(item.krId, 64),
         str(item.projectId, 64), bool01(item.done), created, stamp, deviceId]
+    );
+  } else if (entity === 'review') {
+    await client.query(
+      `INSERT INTO review (id,user_id,objective_id,week_key,text,created_at,updated_at,last_device,deleted)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,0)
+       ON CONFLICT (id) DO UPDATE SET objective_id=EXCLUDED.objective_id, week_key=EXCLUDED.week_key,
+         text=EXCLUDED.text, updated_at=EXCLUDED.updated_at,
+         last_device=EXCLUDED.last_device, deleted=0`,
+      [id, userId, str(item.objectiveId, 64), str(item.weekKey, 16), str(item.text, 4000),
+        created, stamp, deviceId]
     );
   } else if (entity === 'project') {
     await client.query(

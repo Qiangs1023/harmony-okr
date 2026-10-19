@@ -112,7 +112,7 @@ export struct TagManagePage {
             TextInput({ placeholder: '标签名', text: this.newTagName })
               .height(40)
               .fontSize(13)
-              .backgroundColor($r('app.color.okr_bg'))
+              .backgroundColor($r('app.color.okr_track'))
               .borderRadius(10)
               .onChange((value: string): void => {
                 this.newTagName = value;
@@ -145,7 +145,7 @@ export struct TagManagePage {
                 TextInput({ placeholder: '新的标签名', text: this.editingValue })
                   .height(38)
                   .fontSize(13)
-                  .backgroundColor($r('app.color.okr_bg'))
+                  .backgroundColor($r('app.color.okr_track'))
                   .borderRadius(8)
                   .onChange((value: string): void => {
                     this.editingValue = value;
@@ -212,7 +212,7 @@ export struct TagManagePage {
       }
     }
     .hideTitleBar(true)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .onReady((context: NavDestinationContext): void => {
       this.stack = context.pathStack;
     })

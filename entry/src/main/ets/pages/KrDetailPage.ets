@@ -9,8 +9,10 @@ import {
 } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
 import { PageShell, SectionCard } from '../components/PageShell';
-import { IdeaCard } from '../components/IdeaCard';
-import { OkrEmptyHint, OkrProgressTrack } from '../components/OkrCommon';
+import { OkrEmptyHint } from '../components/OkrCommon';
+import { OkrLedgerLine, OkrMeter } from '../components/OkrUi';
+import { TaskRow } from '../tabs/TodayPage';
+import { OkrFlowState, okrFlowLabel } from '../model/OkrAnalytics';
 
 @ComponentV2
 struct KrDetailPage {
@@ -225,7 +227,7 @@ struct KrDetailPage {
     .width('100%')
     .padding(12)
     .alignItems(HorizontalAlign.Start)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .borderRadius(12)
   }
 
@@ -241,7 +243,7 @@ struct KrDetailPage {
                 TextInput({ placeholder: '关键结果，例如「连续记录 30 天」', text: this.titleDraft })
                   .height(42)
                   .fontSize(15)
-                  .backgroundColor($r('app.color.okr_bg'))
+                  .backgroundColor($r('app.color.okr_track'))
                   .borderRadius(12)
                   .onChange((value: string): void => {
                     this.titleDraft = value;
@@ -250,7 +252,7 @@ struct KrDetailPage {
                 TextInput({ placeholder: '衡量指标，例如「30 篇复盘」', text: this.targetDraft })
                   .height(42)
                   .fontSize(14)
-                  .backgroundColor($r('app.color.okr_bg'))
+                  .backgroundColor($r('app.color.okr_track'))
                   .borderRadius(12)
                   .onChange((value: string): void => {
                     this.targetDraft = value;
@@ -264,7 +266,8 @@ struct KrDetailPage {
                     .layoutWeight(1)
                     .height(38)
                     .fontSize(13)
-                    .backgroundColor($r('app.color.okr_bg'))
+                    .borderRadius(10)
+                    .backgroundColor($r('app.color.okr_track'))
                     .fontColor($r('app.color.okr_text_primary'))
                     .onClick((): void => {
                       this.pickDate();
@@ -274,12 +277,14 @@ struct KrDetailPage {
                     .fontSize(12)
                     .fontColor($r('app.color.okr_text_secondary'))
                     .padding({ left: 4 })
-                  Text('保存')
+                  Button('保存')
                     .height(38)
+                    .padding({ left: 16, right: 16 })
                     .fontSize(13)
-                    .fontColor($r('app.color.okr_primary'))
-                    .padding({ left: 12 })
-                    .textAlign(TextAlign.Center)
+                    .fontWeight(FontWeight.Medium)
+                    .borderRadius(10)
+                    .backgroundColor($r('app.color.okr_text_primary'))
+                    .fontColor($r('app.color.okr_on_primary'))
                     .onClick((): void => {
                       this.save();
                     })
@@ -288,18 +293,32 @@ struct KrDetailPage {
                 .alignItems(VerticalAlign.Center)
 
                 Row() {
-                  Text(`进度 ${OKR_STORE.krProgress(this.krId)}%`)
-                    .fontSize(13)
-                    .fontWeight(FontWeight.Medium)
-                    .fontColor($r('app.color.okr_text_primary'))
-                    .layoutWeight(1)
-                  Text(this.targetText())
+                  Text('进度')
                     .fontSize(12)
+                    .fontWeight(FontWeight.Medium)
                     .fontColor($r('app.color.okr_text_secondary'))
+                  Blank()
+                  Text(`${OKR_STORE.krProgress(this.krId)}%`)
+                    .fontSize(17)
+                    .fontWeight(FontWeight.Bold)
+                    .letterSpacing(-0.4)
+                    .fontColor($r('app.color.okr_text_primary'))
                 }
                 .width('100%')
-                .alignItems(VerticalAlign.Center)
-                OkrProgressTrack({ percent: OKR_STORE.krProgress(this.krId), barColor: $r('app.color.okr_primary') })
+                .alignItems(VerticalAlign.Bottom)
+
+                OkrMeter({
+                  actual: OKR_STORE.krProgress(this.krId),
+                  expected: OKR_STORE.krExpected(this.krId),
+                  state: OKR_STORE.krState(this.krId)
+                })
+                .margin({ top: 12 })
+
+                OkrLedgerLine({
+                  leftText: `${okrFlowLabel(OKR_STORE.krState(this.krId), OKR_STORE.krProgress(this.krId), OKR_STORE.krExpected(this.krId))} · ${this.linkedIdeas().length} 个任务`,
+                  rightText: this.targetText(),
+                  tone: OKR_STORE.krState(this.krId)
+                })
               }
 
               SectionCard({ cardTitle: '关联任务', cardHint: '把想法挂到这个 KR' }) {
@@ -323,7 +342,7 @@ struct KrDetailPage {
                     TextInput({ placeholder: '新想法，用 #标签 归类', text: this.newIdeaText })
                       .height(40)
                       .fontSize(13)
-                      .backgroundColor($r('app.color.okr_bg'))
+                      .backgroundColor($r('app.color.okr_track'))
                       .borderRadius(10)
                       .onChange((value: string): void => {
                         this.newIdeaText = value;
@@ -351,13 +370,17 @@ struct KrDetailPage {
                     subText: '点右上角「＋ 新建」把想法挂到这个 KR'
                   })
                 } else {
-                  Column({ space: 10 }) {
-                    ForEach(this.linkedIdeas(), (ideaItem: OkrIdeaItem): void => {
-                      IdeaCard({
-                        ideaId: ideaItem.id,
-                        onOpen: (id: string): void => {
-                          this.openIdea(id);
-                        }
+                  Column() {
+                    ForEach(this.linkedIdeas(), (ideaItem: OkrIdeaItem, index: number): void => {
+                      if (index > 0) {
+                        Divider()
+                          .strokeWidth(1)
+                          .color($r('app.color.okr_divider'))
+                      }
+                      TaskRow({
+                        taskId: ideaItem.id,
+                        krTitle: '',
+                        krState: OKR_STORE.krState(this.krId)
                       })
                     }, (ideaItem: OkrIdeaItem): string => ideaItem.id)
                   }
@@ -373,9 +396,10 @@ struct KrDetailPage {
           .scrollBar(BarState.Off)
         Button('删除这个关键结果')
           .width('100%')
-          .height(46)
-          .fontSize(15)
-          .backgroundColor($r('app.color.okr_card'))
+          .height(42)
+          .fontSize(14)
+          .borderRadius(10)
+          .backgroundColor($r('app.color.okr_danger_soft'))
           .fontColor($r('app.color.okr_danger'))
           .margin({ top: 8 })
           .onClick((): void => {
@@ -388,7 +412,7 @@ struct KrDetailPage {
       }
     }
     .hideTitleBar(true)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .onReady((context: NavDestinationContext): void => {
       this.stack = context.pathStack;
       const param: OkrKrParam = context.pathInfo.param as OkrKrParam;

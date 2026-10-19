@@ -119,7 +119,7 @@ export struct SettingsPage {
             TextInput({ placeholder: '服务器地址', text: this.serverUrl })
               .height(40)
               .fontSize(12)
-              .backgroundColor($r('app.color.okr_bg'))
+              .backgroundColor($r('app.color.okr_track'))
               .borderRadius(10)
               .onChange((value: string): void => {
                 this.serverUrl = value;
@@ -129,7 +129,7 @@ export struct SettingsPage {
                 .layoutWeight(1)
                 .height(36)
                 .fontSize(13)
-                .backgroundColor($r('app.color.okr_primary'))
+                .backgroundColor($r('app.color.okr_text_primary'))
                 .fontColor($r('app.color.okr_on_primary'))
                 .onClick((): void => {
                   SESSION.setBaseUrl(this.serverUrl);
@@ -172,7 +172,7 @@ export struct SettingsPage {
       }
     }
     .hideTitleBar(true)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .onReady((context: NavDestinationContext): void => {
       this.stack = context.pathStack;
     })

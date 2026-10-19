@@ -271,7 +271,7 @@ struct IdeaDetailPage {
     .width('100%')
     .padding(12)
     .alignItems(HorizontalAlign.Start)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .borderRadius(12)
   }
 
@@ -306,7 +306,7 @@ struct IdeaDetailPage {
                 TextArea({ placeholder: '这条想法是什么？', text: this.titleDraft })
                   .height(84)
                   .fontSize(15)
-                  .backgroundColor($r('app.color.okr_bg'))
+                  .backgroundColor($r('app.color.okr_track'))
                   .borderRadius(12)
                   .onChange((value: string): void => {
                     this.titleDraft = value;
@@ -340,7 +340,7 @@ struct IdeaDetailPage {
                     .height(38)
                     .fontSize(13)
                     .borderRadius(19)
-                    .backgroundColor($r('app.color.okr_bg'))
+                    .backgroundColor($r('app.color.okr_track'))
                     .onChange((value: string): void => {
                       this.tagInput = value;
                     })
@@ -380,7 +380,7 @@ struct IdeaDetailPage {
                     .layoutWeight(1)
                     .height(38)
                     .fontSize(13)
-                    .backgroundColor($r('app.color.okr_bg'))
+                    .backgroundColor($r('app.color.okr_track'))
                     .fontColor($r('app.color.okr_text_primary'))
                     .onClick((): void => {
                       this.pickDate();
@@ -388,7 +388,7 @@ struct IdeaDetailPage {
                   Button('清除')
                     .height(38)
                     .fontSize(13)
-                    .backgroundColor($r('app.color.okr_bg'))
+                    .backgroundColor($r('app.color.okr_track'))
                     .fontColor($r('app.color.okr_text_secondary'))
                     .onClick((): void => {
                       this.clearDate();
@@ -402,7 +402,7 @@ struct IdeaDetailPage {
                   .width('100%')
                   .height(38)
                   .fontSize(13)
-                  .backgroundColor($r('app.color.okr_bg'))
+                  .backgroundColor($r('app.color.okr_track'))
                   .fontColor(this.krButtonColor())
                   .onClick((): void => {
                     this.krPickerOpen = !this.krPickerOpen;
@@ -416,7 +416,7 @@ struct IdeaDetailPage {
                 TextArea({ placeholder: '补充说明、上下文、后续动作…', text: this.noteDraft })
                   .height(110)
                   .fontSize(14)
-                  .backgroundColor($r('app.color.okr_bg'))
+                  .backgroundColor($r('app.color.okr_track'))
                   .borderRadius(12)
                   .onChange((value: string): void => {
                     this.noteDraft = value;
@@ -426,10 +426,11 @@ struct IdeaDetailPage {
 
               Button('保存修改')
                 .width('100%')
-                .height(46)
-                .fontSize(15)
+                .height(42)
+                .fontSize(14)
                 .fontWeight(FontWeight.Medium)
-                .backgroundColor($r('app.color.okr_primary'))
+                .borderRadius(10)
+                .backgroundColor($r('app.color.okr_text_primary'))
                 .fontColor($r('app.color.okr_on_primary'))
                 .onClick((): void => {
                   this.save();
@@ -437,9 +438,10 @@ struct IdeaDetailPage {
 
               Button('删除这条想法')
                 .width('100%')
-                .height(46)
-                .fontSize(15)
-                .backgroundColor($r('app.color.okr_card'))
+                .height(42)
+                .fontSize(14)
+                .borderRadius(10)
+                .backgroundColor($r('app.color.okr_danger_soft'))
                 .fontColor($r('app.color.okr_danger'))
                 .onClick((): void => {
                   this.confirmDelete();
@@ -458,7 +460,7 @@ struct IdeaDetailPage {
       }
     }
     .hideTitleBar(true)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .onReady((context: NavDestinationContext): void => {
       this.stack = context.pathStack;
       const param: OkrIdeaParam = context.pathInfo.param as OkrIdeaParam;

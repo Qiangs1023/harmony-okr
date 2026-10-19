@@ -62,12 +62,22 @@ export interface ApiTagItem {
   sortIndex: number;
 }
 
+export interface ApiReviewItem {
+  id: string;
+  objectiveId: string;
+  weekKey: string;
+  text: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface ApiRemoved {
   objectives: string[];
   krs: string[];
   ideas: string[];
   tags: string[];
   projects: string[];
+  reviews: string[];
 }
 
 export interface ApiPushBody {
@@ -77,6 +87,7 @@ export interface ApiPushBody {
   ideas: ApiIdeaItem[];
   tags: ApiTagItem[];
   projects: ApiProjectItem[];
+  reviews: ApiReviewItem[];
   removed: ApiRemoved;
 }
 
@@ -99,6 +110,7 @@ export interface ApiPullResult {
   ideas: ApiIdeaItem[];
   tags: ApiTagItem[];
   projects: ApiProjectItem[];
+  reviews: ApiReviewItem[];
   error: string;
 }
 
@@ -156,6 +168,15 @@ interface RawIdea {
   updatedAt?: number;
 }
 
+interface RawReview {
+  id?: string;
+  objectiveId?: string;
+  weekKey?: string;
+  text?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
 interface RawTag {
   name?: string;
   colorIndex?: number;
@@ -180,6 +201,7 @@ interface RawPull {
   ideas?: RawIdea[];
   tags?: RawTag[];
   projects?: RawProject[];
+  reviews?: RawReview[];
 }
 
 interface CredentialsPayload {
@@ -287,6 +309,21 @@ function mapIdea(raw: RawIdea): ApiIdeaItem | undefined {
   };
 }
 
+function mapReview(raw: RawReview): ApiReviewItem | undefined {
+  const id: string = s(raw.id);
+  if (id.length === 0) {
+    return undefined;
+  }
+  return {
+    id: id,
+    objectiveId: s(raw.objectiveId),
+    weekKey: s(raw.weekKey),
+    text: s(raw.text),
+    createdAt: n(raw.createdAt),
+    updatedAt: n(raw.updatedAt)
+  };
+}
+
 function mapTag(raw: RawTag): ApiTagItem | undefined {
   const name: string = s(raw.name);
   if (name.length === 0) {
@@ -387,6 +424,7 @@ function emptyPull(message: string): ApiPullResult {
     ideas: [],
     tags: [],
     projects: [],
+    reviews: [],
     error: message
   };
 }
@@ -403,6 +441,7 @@ export async function apiPull(baseUrl: string, token: string, cursor: number): P
     const ideas: ApiIdeaItem[] = [];
     const tags: ApiTagItem[] = [];
     const projects: ApiProjectItem[] = [];
+    const reviews: ApiReviewItem[] = [];
     if (Array.isArray(raw.projects)) {
       for (let i = 0; i < raw.projects.length; i++) {
         const item: ApiProjectItem | undefined = mapProject(raw.projects[i]);
@@ -443,6 +482,14 @@ export async function apiPull(baseUrl: string, token: string, cursor: number): P
         }
       }
     }
+    if (Array.isArray(raw.reviews)) {
+      for (let i = 0; i < raw.reviews.length; i++) {
+        const item: ApiReviewItem | undefined = mapReview(raw.reviews[i]);
+        if (item !== undefined) {
+          reviews.push(item);
+        }
+      }
+    }
     return {
       cursor: n(raw.cursor, cursor),
       hasMore: raw.hasMore === true,
@@ -451,6 +498,7 @@ export async function apiPull(baseUrl: string, token: string, cursor: number): P
       ideas: ideas,
       tags: tags,
       projects: projects,
+      reviews: reviews,
       error: ''
     };
   } catch (err) {

@@ -1,6 +1,8 @@
 import { BusinessError } from '@kit.BasicServicesKit';
 import { okrTagColor, OkrIdeaItem, OkrKrItem, OkrObjectiveItem } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
+import { OkrFlowState } from '../model/OkrAnalytics';
+import { OkrMeter } from '../components/OkrUi';
 import { PageShell, SectionCard } from '../components/PageShell';
 import { QuickCapture } from '../components/QuickCapture';
 
@@ -65,6 +67,21 @@ export struct ProjectDetailPage {
     return OKR_STORE.objectivesOfProject(this.projectId);
   }
 
+  private projectState(): OkrFlowState {
+    let worst: OkrFlowState = OkrFlowState.OnTrack;
+    const list: OkrKrItem[] = OKR_STORE.krsOfProject(this.projectId);
+    for (let i = 0; i < list.length; i++) {
+      const state: OkrFlowState = OKR_STORE.krState(list[i].id);
+      if (state === OkrFlowState.Behind) {
+        return OkrFlowState.Behind;
+      }
+      if (state === OkrFlowState.Stalled) {
+        worst = OkrFlowState.Stalled;
+      }
+    }
+    return worst;
+  }
+
   private progress(): number {
     return OKR_STORE.projectProgress(this.projectId);
   }
@@ -89,7 +106,7 @@ export struct ProjectDetailPage {
     .height('100%')
     .padding({ left: 16, right: 16, top: 4, bottom: 20 })
     .alignItems(HorizontalAlign.Start)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
   }
 
   @Builder
@@ -127,7 +144,7 @@ export struct ProjectDetailPage {
             TextInput({ placeholder: '项目名称', text: this.titleDraft })
               .height(42)
               .fontSize(14)
-              .backgroundColor($r('app.color.okr_bg'))
+              .backgroundColor($r('app.color.okr_track'))
               .borderRadius(10)
               .onChange((value: string): void => {
                 this.titleDraft = value;
@@ -135,7 +152,7 @@ export struct ProjectDetailPage {
             TextArea({ placeholder: '项目描述（选填）', text: this.descDraft })
               .height(72)
               .fontSize(13)
-              .backgroundColor($r('app.color.okr_bg'))
+              .backgroundColor($r('app.color.okr_track'))
               .borderRadius(10)
               .onChange((value: string): void => {
                 this.descDraft = value;
@@ -188,8 +205,8 @@ export struct ProjectDetailPage {
 
           Button('删除项目')
             .width('100%')
-            .height(46)
-            .fontSize(15)
+            .height(42)
+            .fontSize(14)
             .backgroundColor($r('app.color.okr_card'))
             .fontColor($r('app.color.okr_danger'))
             .onClick((): void => {
@@ -197,11 +214,12 @@ export struct ProjectDetailPage {
             })
 
           SectionCard({ cardTitle: '任务完成度', cardHint: `${this.progress()}%` }) {
-            Progress({ total: 100, value: this.progress() })
-              .width('100%')
-              .height(8)
-              .color($r('app.color.okr_project'))
-              .backgroundColor($r('app.color.okr_track'))
+            OkrMeter({
+              actual: this.progress(),
+              expected: OKR_STORE.projectExpected(this.projectId),
+              state: this.projectState(),
+              showLabel: false
+            })
           }
 
           if (this.objectives().length > 0) {
@@ -217,7 +235,7 @@ export struct ProjectDetailPage {
                 }
                 .width('100%')
                 .padding(12)
-                .backgroundColor($r('app.color.okr_bg'))
+                .backgroundColor($r('app.color.okr_track'))
                 .borderRadius(10)
                 .alignItems(HorizontalAlign.Start)
               }, (item: OkrObjectiveItem): string => item.id)
@@ -237,7 +255,7 @@ export struct ProjectDetailPage {
                 }
                 .width('100%')
                 .padding(12)
-                .backgroundColor($r('app.color.okr_bg'))
+                .backgroundColor($r('app.color.okr_track'))
                 .borderRadius(10)
                 .alignItems(HorizontalAlign.Start)
               }, (item: OkrKrItem): string => item.id)
@@ -265,7 +283,7 @@ export struct ProjectDetailPage {
                 }
                 .width('100%')
                 .padding(12)
-                .backgroundColor($r('app.color.okr_bg'))
+                .backgroundColor($r('app.color.okr_track'))
                 .borderRadius(10)
               }, (item: OkrIdeaItem): string => item.id)
             }
@@ -289,7 +307,7 @@ export struct ProjectDetailPage {
       }
     }
     .hideTitleBar(true)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .onReady((context: NavDestinationContext): void => {
       this.stack = context.pathStack;
       const param: ProjectRouteParam = context.pathInfo.param as ProjectRouteParam;

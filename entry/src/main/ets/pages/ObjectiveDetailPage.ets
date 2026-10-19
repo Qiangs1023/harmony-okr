@@ -1,5 +1,7 @@
 import { OkrProjectItem, okrFormatDate } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
+import { okrExpectedPercent, okrFlowLabel } from '../model/OkrAnalytics';
+import { OkrLedgerLine, OkrMeter } from '../components/OkrUi';
 import { PageShell, SectionCard } from '../components/PageShell';
 
 interface ObjectiveRouteParam {
@@ -69,6 +71,11 @@ export struct ObjectiveDetailPage {
 
   private projects(): OkrProjectItem[] {
     return OKR_STORE.projectList(true);
+  }
+
+  private expected(): number {
+    return okrExpectedPercent(OKR_STORE.objectiveStart(this.objectiveId),
+      OKR_STORE.objectiveEnd(this.objectiveId), Date.now());
   }
 
   private projectLabel(): string {
@@ -148,7 +155,7 @@ export struct ObjectiveDetailPage {
             TextInput({ placeholder: '目标名称', text: this.titleDraft })
               .height(42)
               .fontSize(14)
-              .backgroundColor($r('app.color.okr_bg'))
+              .backgroundColor($r('app.color.okr_track'))
               .borderRadius(10)
               .onChange((value: string): void => {
                 this.titleDraft = value;
@@ -158,7 +165,7 @@ export struct ObjectiveDetailPage {
                 .layoutWeight(1)
                 .height(42)
                 .fontSize(13)
-                .backgroundColor($r('app.color.okr_bg'))
+                .backgroundColor($r('app.color.okr_track'))
                 .fontColor($r('app.color.okr_text_primary'))
                 .onClick((): void => {
                   this.pickStart();
@@ -167,7 +174,7 @@ export struct ObjectiveDetailPage {
                 .layoutWeight(1)
                 .height(42)
                 .fontSize(13)
-                .backgroundColor($r('app.color.okr_bg'))
+                .backgroundColor($r('app.color.okr_track'))
                 .fontColor($r('app.color.okr_text_primary'))
                 .onClick((): void => {
                   this.pickEnd();
@@ -191,11 +198,27 @@ export struct ObjectiveDetailPage {
             TextArea({ placeholder: '目标描述（选填）', text: this.descDraft })
               .height(80)
               .fontSize(13)
-              .backgroundColor($r('app.color.okr_bg'))
+              .backgroundColor($r('app.color.okr_track'))
               .borderRadius(10)
               .onChange((value: string): void => {
                 this.descDraft = value;
               })
+          }
+
+          SectionCard({ cardTitle: '整体进度', cardHint: `${OKR_STORE.objectiveProgress(this.objectiveId)}%` }) {
+            OkrMeter({
+              actual: OKR_STORE.objectiveProgress(this.objectiveId),
+              expected: this.expected(),
+              state: OKR_STORE.objectiveState(this.objectiveId),
+              showLabel: false
+            })
+            OkrLedgerLine({
+              leftText: okrFlowLabel(OKR_STORE.objectiveState(this.objectiveId),
+                OKR_STORE.objectiveProgress(this.objectiveId), this.expected()),
+              rightText: '',
+              tone: OKR_STORE.objectiveState(this.objectiveId)
+            })
+            .margin({ top: 2 })
           }
 
           SectionCard({ cardTitle: '归属项目', cardHint: '把目标挂到项目下' }) {
@@ -204,7 +227,7 @@ export struct ObjectiveDetailPage {
               .fontColor($r('app.color.okr_text_secondary'))
               .width('100%')
               .padding(12)
-              .backgroundColor($r('app.color.okr_bg'))
+              .backgroundColor($r('app.color.okr_track'))
               .borderRadius(10)
               .onClick((): void => {
                 this.projectPickerOpen = !this.projectPickerOpen;
@@ -244,9 +267,11 @@ export struct ObjectiveDetailPage {
 
           Button('保存修改')
             .width('100%')
-            .height(46)
-            .fontSize(15)
-            .backgroundColor($r('app.color.okr_primary'))
+            .height(42)
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .borderRadius(10)
+            .backgroundColor($r('app.color.okr_text_primary'))
             .fontColor($r('app.color.okr_on_primary'))
             .onClick((): void => {
               this.commit();
@@ -254,9 +279,10 @@ export struct ObjectiveDetailPage {
 
           Button('删除这个目标')
             .width('100%')
-            .height(46)
-            .fontSize(15)
-            .backgroundColor($r('app.color.okr_card'))
+            .height(42)
+            .fontSize(14)
+            .borderRadius(10)
+            .backgroundColor($r('app.color.okr_danger_soft'))
             .fontColor($r('app.color.okr_danger'))
             .onClick((): void => {
               this.delete();
@@ -267,7 +293,7 @@ export struct ObjectiveDetailPage {
       }
     }
     .hideTitleBar(true)
-    .backgroundColor($r('app.color.okr_bg'))
+    .backgroundColor($r('app.color.okr_track'))
     .onReady((context: NavDestinationContext): void => {
       this.stack = context.pathStack;
       const param: ObjectiveRouteParam = context.pathInfo.param as ObjectiveRouteParam;

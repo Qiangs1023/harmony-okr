@@ -1,107 +1,33 @@
 import { BusinessError } from '@kit.BasicServicesKit';
-import { IdeaCard } from '../components/IdeaCard';
 import { LoginPanel } from '../components/LoginPanel';
-import { OkrEmptyHint } from '../components/OkrCommon';
-import { ObjectiveCard } from '../components/ObjectiveCard';
+import { OkrTabBar } from '../components/OkrTabBar';
 import { QuickCapture } from '../components/QuickCapture';
-import { TagFilterBar } from '../components/TagFilterBar';
 import {
-  OkrIdeaItem,
   OkrIdeaParam,
   OkrKrParam,
-  OkrObjectiveItem,
   OkrObjectiveParam,
-  OkrProjectItem,
-  OkrProjectParam,
-  okrHashTag
+  OkrProjectParam
 } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
 import { SESSION } from '../store/SessionStore';
 import { SYNC } from '../store/SyncService';
-import { ProjectCard } from '../components/ProjectCard';
-import { PageShell } from '../components/PageShell';
+import { GoalsPage } from '../tabs/GoalsPage';
+import { InsightsPage } from '../tabs/InsightsPage';
+import { ReviewPage } from '../tabs/ReviewPage';
+import { TodayPage } from '../tabs/TodayPage';
+import { setProjectOpener } from '../pages/ProjectListPage';
 
 @Entry
 @ComponentV2
 struct Index {
   @Local pathStack: NavPathStack = new NavPathStack();
   @Local currentTab: number = 0;
+  @Local captureOpen: boolean = false;
   @Local objectiveComposerOpen: boolean = false;
   @Local objTitle: string = '';
-  @Local objPeriod: string = '';
   @Local objDesc: string = '';
-  @Local projectComposerOpen: boolean = false;
-  @Local projTitle: string = '';
-  @Local projDesc: string = '';
-  @Local captureOpen: boolean = false;
-
-  private visibleIdeas(): OkrIdeaItem[] {
-    return OKR_STORE.visibleIdeas();
-  }
-
-  private objectiveList(): OkrObjectiveItem[] {
-    return OKR_STORE.objectives;
-  }
-
-  private projectList(): OkrProjectItem[] {
-    return OKR_STORE.projectList(false);
-  }
-
-  private toggleProjectComposer(): void {
-    this.projectComposerOpen = !this.projectComposerOpen;
-    this.projTitle = '';
-    this.projDesc = '';
-  }
-
-  private createProject(): void {
-    if (this.projTitle.trim().length === 0) {
-      return;
-    }
-    OKR_STORE.addProject(this.projTitle.trim(), this.projDesc.trim(), okrHashTag(this.projTitle.trim()));
-    this.projectComposerOpen = false;
-    this.projTitle = '';
-    this.projDesc = '';
-  }
-
-  @Builder
-  projectComposer() {
-    Column({ space: 8 }) {
-      TextInput({ placeholder: '项目名称，例如「写作项目」', text: this.projTitle })
-        .height(40)
-        .fontSize(13)
-        .backgroundColor($r('app.color.okr_bg'))
-        .borderRadius(8)
-        .onChange((value: string): void => {
-          this.projTitle = value;
-        })
-      TextInput({ placeholder: '项目描述（选填）', text: this.projDesc })
-        .height(40)
-        .fontSize(13)
-        .backgroundColor($r('app.color.okr_bg'))
-        .borderRadius(8)
-        .onChange((value: string): void => {
-          this.projDesc = value;
-        })
-      Button('创建项目')
-        .width(88)
-        .height(40)
-        .fontSize(13)
-        .backgroundColor($r('app.color.okr_project'))
-        .fontColor($r('app.color.okr_on_primary'))
-        .onClick((): void => {
-          this.createProject();
-        })
-    }
-    .width('100%')
-    .padding(12)
-    .alignItems(HorizontalAlign.Start)
-    .backgroundColor($r('app.color.okr_card'))
-    .borderRadius(14)
-  }
-
-  private headerSub(): string {
-    return `待办 ${OKR_STORE.todoCount()} 条 · 今日完成 ${OKR_STORE.doneTodayCount()} 条`;
-  }
+  @Local objStart: string = '';
+  @Local objEnd: string = '';
 
   private openIdea(ideaId: string): void {
     const param: OkrIdeaParam = { ideaId: ideaId };
@@ -149,115 +75,49 @@ struct Index {
       });
   }
 
+  aboutToAppear(): void {
+    setProjectOpener((projectId: string): void => {
+      this.openProject(projectId);
+    });
+  }
+
+  private openProjects(): void {
+    this.pathStack.pushDestination({ name: 'ProjectList' })
+      .catch((error: BusinessError): void => {
+        console.error(`open projects failed: ${error.message}`);
+      });
+  }
+
   private toggleObjectiveComposer(): void {
     this.objectiveComposerOpen = !this.objectiveComposerOpen;
     this.objTitle = '';
-    this.objPeriod = '';
     this.objDesc = '';
+    this.objStart = '';
+    this.objEnd = '';
   }
 
   private createObjective(): void {
     if (this.objTitle.trim().length === 0) {
       return;
     }
-    OKR_STORE.addObjective(this.objTitle.trim(), this.objPeriod.trim(), this.objDesc.trim());
+    const start: number = this.parseDate(this.objStart);
+    const end: number = this.parseDate(this.objEnd);
+    OKR_STORE.addObjectiveWithSpan(this.objTitle.trim(), this.objDesc.trim(), start, end);
     this.objectiveComposerOpen = false;
-    this.objTitle = '';
-    this.objPeriod = '';
-    this.objDesc = '';
   }
 
-  @Builder
-  homeHeader() {
-    Row() {
-      Column({ space: 3 }) {
-        Text('OKR 记事本')
-          .fontSize(21)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.okr_text_primary'))
-        Text(this.headerSub())
-          .fontSize(12)
-          .fontColor($r('app.color.okr_text_secondary'))
-      }
-      .alignItems(HorizontalAlign.Start)
-      .layoutWeight(1)
-
-      Text(SYNC.statusText())
-        .fontSize(11)
-        .fontColor($r('app.color.okr_text_tertiary'))
-        .onClick((): void => {
-          SYNC.syncNow();
-        })
-
-      Text('标签')
-        .fontSize(12)
-        .fontColor($r('app.color.okr_primary'))
-        .margin({ right: 12 })
-        .onClick((): void => {
-          this.openTagManage();
-        })
-
-      Text('设置')
-        .fontSize(12)
-        .fontColor($r('app.color.okr_primary'))
-        .onClick((): void => {
-          this.openSettings();
-        })
+  private parseDate(text: string): number {
+    const parts: string[] = text.split('-');
+    if (parts.length !== 3) {
+      return 0;
     }
-    .width('100%')
-    .padding({ left: 4, right: 4 })
-    .alignItems(VerticalAlign.Center)
-  }
-
-  @Builder
-  inboxTab() {
-    Stack({ alignContent: Alignment.BottomEnd }) {
-      List({ space: 10 }) {
-        ListItem() {
-          TagFilterBar()
-        }
-
-      if (this.visibleIdeas().length === 0) {
-        ListItem() {
-          OkrEmptyHint({
-            hintText: OKR_STORE.activeTag.length > 0 ? '该标签下还没有内容' : '收件箱是空的',
-            subText: OKR_STORE.activeTag.length > 0 ? '换个标签看看' : '在上方输入框写下第一个想法'
-          })
-        }
-      } else {
-        ForEach(this.visibleIdeas(), (ideaItem: OkrIdeaItem): void => {
-          ListItem() {
-            IdeaCard({
-              ideaId: ideaItem.id,
-              onOpen: (id: string): void => {
-                this.openIdea(id);
-              }
-            })
-          }
-        }, (ideaItem: OkrIdeaItem): string => ideaItem.id)
-      }
-      }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 16, right: 16 })
-      .scrollBar(BarState.Off)
-
-      Button('＋')
-        .width(56)
-        .height(56)
-        .fontSize(28)
-        .borderRadius(28)
-        .opacity(0.85)
-        .backgroundColor($r('app.color.okr_primary'))
-        .fontColor($r('app.color.okr_on_primary'))
-        .shadow({ radius: 12, color: '#33000000', offsetX: 0, offsetY: 4 })
-        .margin({ right: 20, bottom: 24 })
-        .onClick((): void => {
-          this.captureOpen = true;
-        })
+    const year: number = Number(parts[0]);
+    const month: number = Number(parts[1]);
+    const day: number = Number(parts[2]);
+    if (isNaN(year) || isNaN(month) || isNaN(day) || month < 1 || month > 12 || day < 1 || day > 31) {
+      return 0;
     }
-    .width('100%')
-    .height('100%')
+    return new Date(year, month - 1, day).getTime();
   }
 
   @Builder
@@ -278,235 +138,199 @@ struct Index {
     }
     .width('100%')
     .height('100%')
-    .padding({ left: 16, right: 16, top: 4, bottom: 20 })
+    .padding({ left: 18, right: 18, top: 4, bottom: 20 })
     .alignItems(HorizontalAlign.Start)
     .backgroundColor($r('app.color.okr_bg'))
   }
 
   @Builder
-  goalComposer() {
-    Column({ space: 8 }) {
-      TextInput({ placeholder: '目标，例如「打造个人 OKR 闭环」', text: this.objTitle })
-        .height(40)
+  objectiveSheet() {
+    Column({ space: 10 }) {
+      Text('新建目标')
+        .fontSize(16)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.okr_text_primary'))
+        .width('100%')
+
+      TextInput({ placeholder: '目标，例如「上线个人版 MVP」', text: this.objTitle })
+        .height(42)
         .fontSize(13)
-        .backgroundColor($r('app.color.okr_bg'))
-        .borderRadius(8)
+        .backgroundColor($r('app.color.okr_track'))
+        .borderRadius(10)
         .onChange((value: string): void => {
           this.objTitle = value;
         })
-      Row({ space: 8 }) {
-        TextArea({ placeholder: '目标描述（选填）', text: this.objDesc })
-        .height(56)
+
+      TextArea({ placeholder: '为什么重要（选填）', text: this.objDesc })
+        .height(72)
         .fontSize(13)
-        .backgroundColor($r('app.color.okr_bg'))
-        .borderRadius(8)
+        .backgroundColor($r('app.color.okr_track'))
+        .borderRadius(10)
         .onChange((value: string): void => {
           this.objDesc = value;
         })
-      TextInput({ placeholder: '周期（选填）', text: this.objPeriod })
+
+      Row({ space: 10 }) {
+        TextInput({ placeholder: '开始 2026-10-01', text: this.objStart })
           .layoutWeight(1)
-          .height(40)
+          .height(42)
           .fontSize(13)
-          .backgroundColor($r('app.color.okr_bg'))
-          .borderRadius(8)
+          .backgroundColor($r('app.color.okr_track'))
+          .borderRadius(10)
           .onChange((value: string): void => {
-            this.objPeriod = value;
+            this.objStart = value;
           })
-        Button('创建')
-          .width(80)
-          .height(40)
+
+        TextInput({ placeholder: '结束 2026-12-31', text: this.objEnd })
+          .layoutWeight(1)
+          .height(42)
           .fontSize(13)
-          .backgroundColor($r('app.color.okr_primary'))
+          .backgroundColor($r('app.color.okr_track'))
+          .borderRadius(10)
+          .onChange((value: string): void => {
+            this.objEnd = value;
+          })
+      }
+      .width('100%')
+
+      Row() {
+        Blank()
+        Button('创建')
+          .height(38)
+          .padding({ left: 20, right: 20 })
+          .fontSize(13)
+          .fontWeight(FontWeight.Medium)
+          .borderRadius(10)
+          .backgroundColor($r('app.color.okr_text_primary'))
           .fontColor($r('app.color.okr_on_primary'))
           .onClick((): void => {
             this.createObjective();
           })
       }
       .width('100%')
+      .margin({ top: 4 })
     }
     .width('100%')
-    .padding(12)
+    .padding({ left: 18, right: 18, top: 4, bottom: 20 })
     .alignItems(HorizontalAlign.Start)
-    .backgroundColor($r('app.color.okr_card'))
-    .borderRadius(14)
+    .backgroundColor($r('app.color.okr_bg'))
   }
 
   @Builder
-  fab(icon: string, active: boolean, tint: ResourceColor, onTap: () => void) {
-    Button(icon)
-      .width(56)
-      .height(56)
-      .fontSize(28)
-      .borderRadius(28)
-      .backgroundColor(active ? $r('app.color.okr_track') : tint)
-      .fontColor(active ? $r('app.color.okr_text_secondary') : $r('app.color.okr_on_primary'))
-      .shadow({ radius: 12, color: '#33000000', offsetX: 0, offsetY: 4 })
-      .margin({ right: 20, bottom: 20 })
-      .onClick((): void => {
-        onTap();
-      })
-  }
-
-  @Builder
-  goalsTab() {
-    Stack({ alignContent: Alignment.BottomEnd }) {
-      Column({ space: 12 }) {
-        Text('目标与关键结果')
-          .fontSize(15)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.okr_text_primary'))
-          .width('100%')
-
-        if (this.objectiveComposerOpen) {
-          this.goalComposer()
-        }
-
-        if (this.objectiveList().length === 0) {
-          List() {
-            ListItem() {
-              OkrEmptyHint({
-                hintText: '还没有目标',
-                subText: '点右下角的加号开始设定'
-              })
-            }
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .scrollBar(BarState.Off)
-        } else {
-          List({ space: 12 }) {
-            ForEach(this.objectiveList(), (objItem: OkrObjectiveItem) => {
-              ListItem() {
-                ObjectiveCard({
-                  objectiveId: objItem.id,
-                  onOpenKr: (id: string): void => {
-                    this.openKr(id);
-                  },
-                  onEdit: (id: string): void => {
-                    this.openObjective(id);
-                  }
-                })
-              }
-            }, (objItem: OkrObjectiveItem): string => objItem.id)
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .scrollBar(BarState.Off)
-        }
+  todayView() {
+    TodayPage({
+      onOpenKr: (krId: string): void => {
+        this.openKr(krId);
+      },
+      onOpenObjective: (objectiveId: string): void => {
+        this.openObjective(objectiveId);
+      },
+      onQuickAdd: (): void => {
+        this.captureOpen = true;
       }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 16, right: 16, bottom: 24 })
+    })
+  }
 
-      this.fab(this.objectiveComposerOpen ? '－' : '＋', this.objectiveComposerOpen,
-        $r('app.color.okr_primary'), (): void => {
-          this.toggleObjectiveComposer();
+  @Builder
+  goalsView() {
+    GoalsPage({
+      onOpenKr: (krId: string): void => {
+        this.openKr(krId);
+      },
+      onOpenObjective: (objectiveId: string): void => {
+        this.openObjective(objectiveId);
+      },
+      onCompose: (): void => {
+        this.toggleObjectiveComposer();
+      }
+    })
+  }
+
+  @Builder
+  reviewView() {
+    ReviewPage()
+  }
+
+  @Builder
+  insightsView() {
+    InsightsPage({
+      onOpenKr: (krId: string): void => {
+        this.openKr(krId);
+      }
+    })
+  }
+
+  @Builder
+  topActions() {
+    Row({ space: 16 }) {
+      Text('项目')
+        .fontSize(12)
+        .fontColor($r('app.color.okr_text_secondary'))
+        .onClick((): void => {
+          this.openProjects();
+        })
+      Text('标签')
+        .fontSize(12)
+        .fontColor($r('app.color.okr_text_secondary'))
+        .onClick((): void => {
+          this.openTagManage();
+        })
+      Text('设置')
+        .fontSize(12)
+        .fontColor($r('app.color.okr_text_secondary'))
+        .onClick((): void => {
+          this.openSettings();
         })
     }
-    .width('100%')
-    .height('100%')
+    .padding({ top: 6, bottom: 6, left: 4, right: 4 })
   }
 
   @Builder
-  projectsTab() {
-    Stack({ alignContent: Alignment.BottomEnd }) {
-      Column({ space: 12 }) {
-        Text('项目')
-          .fontSize(15)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('app.color.okr_text_primary'))
-          .width('100%')
-
-        if (this.projectComposerOpen) {
-          this.projectComposer()
-        }
-
-        if (this.projectList().length === 0) {
-          List() {
-            ListItem() {
-              OkrEmptyHint({
-                hintText: '还没有项目',
-                subText: '点右下角的加号，把目标、KR、任务串成一条线'
-              })
-            }
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .scrollBar(BarState.Off)
-        } else {
-          List({ space: 12 }) {
-            ForEach(this.projectList(), (projItem: OkrProjectItem) => {
-              ListItem() {
-                ProjectCard({
-                  projectId: projItem.id,
-                  onOpen: (id: string): void => {
-                    this.openProject(id);
-                  }
-                })
-              }
-            }, (projItem: OkrProjectItem): string => projItem.id)
-          }
-          .width('100%')
-          .layoutWeight(1)
-          .scrollBar(BarState.Off)
-        }
-      }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 16, right: 16, bottom: 24 })
-
-      this.fab(this.projectComposerOpen ? '－' : '＋', this.projectComposerOpen,
-        $r('app.color.okr_project'), (): void => {
-          this.toggleProjectComposer();
-        })
+  currentView() {
+    if (this.currentTab === 0) {
+      this.todayView()
+    } else if (this.currentTab === 1) {
+      this.goalsView()
+    } else if (this.currentTab === 2) {
+      this.reviewView()
+    } else {
+      this.insightsView()
     }
-    .width('100%')
-    .height('100%')
   }
 
   build() {
     Navigation(this.pathStack) {
-      PageShell() {
-        if (SESSION.isLoggedIn()) {
-          Column({ space: 12 }) {
-            this.homeHeader()
-            Tabs({ index: this.currentTab }) {
-              TabContent() {
-                this.inboxTab()
-              }
-              .tabBar('收件箱')
-
-              TabContent() {
-                this.goalsTab()
-              }
-              .tabBar('目标')
-
-              TabContent() {
-                this.projectsTab()
-              }
-              .tabBar('项目')
-            }
-            .barMode(BarMode.Fixed)
-            .barPosition(BarPosition.End)
-            .barHeight(56)
-            .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
-            .backgroundColor($r('app.color.okr_bg'))
-            .onChange((index: number): void => {
-              this.currentTab = index;
-            })
-            .layoutWeight(1)
+      if (SESSION.isLoggedIn()) {
+        Column() {
+          Row() {
+            Text(SYNC.statusText())
+              .fontSize(10)
+              .letterSpacing(1)
+              .fontColor($r('app.color.okr_text_tertiary'))
+            Blank()
+            this.topActions()
           }
           .width('100%')
-          .height('100%')
-          .padding({ left: 16, right: 16, top: 12 })
-          .backgroundColor($r('app.color.okr_bg'))
-        } else {
-          LoginPanel({
-            onSignedIn: (): void => {
-              SYNC.start();
+          .padding({ left: 18, right: 18, top: 8, bottom: 2 })
+
+          this.currentView()
+
+          OkrTabBar({
+            activeIndex: this.currentTab,
+            onChange: (index: number): void => {
+              this.currentTab = index;
             }
           })
         }
+        .width('100%')
+        .height('100%')
+        .backgroundColor($r('app.color.okr_bg'))
+      } else {
+        LoginPanel({
+          onSignedIn: (): void => {
+            SYNC.start();
+          }
+        })
       }
     }
     .mode(NavigationMode.Stack)
@@ -515,6 +339,12 @@ struct Index {
     .height('100%')
     .backgroundColor($r('app.color.okr_bg'))
     .bindSheet($$this.captureOpen, this.captureSheet(), {
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      showClose: true,
+      keyboardAvoidMode: SheetKeyboardAvoidMode.TRANSLATE_AND_RESIZE
+    })
+    .bindSheet($$this.objectiveComposerOpen, this.objectiveSheet(), {
       height: SheetSize.FIT_CONTENT,
       dragBar: true,
       showClose: true,

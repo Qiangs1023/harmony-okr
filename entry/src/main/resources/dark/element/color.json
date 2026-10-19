@@ -2,67 +2,83 @@
   "color": [
     {
       "name": "okr_on_primary",
-      "value": "#0E1014"
+      "value": "#0F1214"
     },
     {
       "name": "okr_project",
-      "value": "#B79CFF"
+      "value": "#7D9BF0"
     },
     {
       "name": "okr_project_soft",
-      "value": "#271C3D"
+      "value": "#1B2337"
     },
     {
       "name": "start_window_background",
-      "value": "#000000"
+      "value": "#0F1214"
     },
     {
       "name": "okr_bg",
-      "value": "#0E1014"
+      "value": "#0F1214"
     },
     {
       "name": "okr_card",
-      "value": "#1A1D23"
+      "value": "#171B1E"
     },
     {
       "name": "okr_text_primary",
-      "value": "#F2F3F5"
+      "value": "#F4F6F8"
     },
     {
       "name": "okr_text_secondary",
-      "value": "#98A0AC"
+      "value": "#A7B0B7"
     },
     {
       "name": "okr_text_tertiary",
-      "value": "#6A727E"
+      "value": "#79838A"
+    },
+    {
+      "name": "okr_ink_faint",
+      "value": "#5C666D"
     },
     {
       "name": "okr_divider",
-      "value": "#262A31"
+      "value": "#232A2E"
+    },
+    {
+      "name": "okr_rule_strong",
+      "value": "#333C41"
     },
     {
       "name": "okr_primary",
-      "value": "#7D9DFF"
+      "value": "#7D9BF0"
     },
     {
       "name": "okr_primary_soft",
-      "value": "#1D2440"
+      "value": "#1B2337"
     },
     {
       "name": "okr_danger",
-      "value": "#FF6B6B"
+      "value": "#E2685A"
+    },
+    {
+      "name": "okr_danger_soft",
+      "value": "#2A1917"
+    },
+    {
+      "name": "okr_neutral",
+      "value": "#6F787F"
     },
     {
       "name": "okr_success",
-      "value": "#38D9A9"
+      "value": "#6FBF8F"
     },
     {
       "name": "okr_warning",
-      "value": "#FFC078"
+      "value": "#D8A75A"
     },
     {
       "name": "okr_track",
-      "value": "#2A2F37"
+      "value": "#232A2E"
     }
   ]
 }

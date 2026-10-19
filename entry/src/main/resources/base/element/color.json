@@ -6,19 +6,19 @@
     },
     {
       "name": "okr_project",
-      "value": "#8E5CF7"
+      "value": "#2F55D4"
     },
     {
       "name": "okr_project_soft",
-      "value": "#F1EBFF"
+      "value": "#EDF1FD"
     },
     {
       "name": "start_window_background",
-      "value": "#FFFFFF"
+      "value": "#E8ECEF"
     },
     {
       "name": "okr_bg",
-      "value": "#F4F5F7"
+      "value": "#E8ECEF"
     },
     {
       "name": "okr_card",
@@ -26,43 +26,59 @@
     },
     {
       "name": "okr_text_primary",
-      "value": "#1A1C1E"
+      "value": "#111619"
     },
     {
       "name": "okr_text_secondary",
-      "value": "#7A808C"
+      "value": "#5A636B"
     },
     {
       "name": "okr_text_tertiary",
-      "value": "#AEB3BC"
+      "value": "#949DA5"
+    },
+    {
+      "name": "okr_ink_faint",
+      "value": "#B9C0C6"
     },
     {
       "name": "okr_divider",
-      "value": "#ECEDF0"
+      "value": "#E7EBEE"
+    },
+    {
+      "name": "okr_rule_strong",
+      "value": "#CFD5DA"
     },
     {
       "name": "okr_primary",
-      "value": "#4E7BFF"
+      "value": "#2F55D4"
     },
     {
       "name": "okr_primary_soft",
-      "value": "#EDF1FF"
+      "value": "#EDF1FD"
     },
     {
       "name": "okr_danger",
-      "value": "#F03E3E"
+      "value": "#C0402C"
+    },
+    {
+      "name": "okr_danger_soft",
+      "value": "#FBEFED"
+    },
+    {
+      "name": "okr_neutral",
+      "value": "#A7B0B7"
     },
     {
       "name": "okr_success",
-      "value": "#12B886"
+      "value": "#3F7D58"
     },
     {
       "name": "okr_warning",
-      "value": "#F59F00"
+      "value": "#C98A2E"
     },
     {
       "name": "okr_track",
-      "value": "#E6E8EC"
+      "value": "#EAEEF1"
     }
   ]
 }

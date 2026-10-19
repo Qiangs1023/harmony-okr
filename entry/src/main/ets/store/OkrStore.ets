@@ -8,14 +8,21 @@ import {
   OkrObjectiveItem,
   OkrParsedText,
   OkrProjectItem,
+  OkrReviewItem,
   OkrSnapshot,
   OkrTagItem,
+  okrDay,
   okrHashTag,
   okrNewId,
   okrNow,
   okrParseTags,
   okrStringIncludes
-} from '../model/OkrModel';
+} from '../model/OkrModel';import {
+  OkrFlowState,
+  okrExpectedPercent,
+  okrFlowState,
+  okrIdleDays
+} from '../model/OkrAnalytics';
 import {
   ApiIdeaItem,
   ApiKrItem,
@@ -24,6 +31,7 @@ import {
   ApiPushBody,
   ApiPullResult,
   ApiRemoved,
+  ApiReviewItem,
   ApiTagItem
 } from '../net/ApiClient';
 
@@ -47,6 +55,7 @@ export class OkrStore {
   @Trace objectives: OkrObjectiveItem[] = [];
   @Trace tags: OkrTagItem[] = [];
   @Trace projects: OkrProjectItem[] = [];
+  @Trace reviews: OkrReviewItem[] = [];
   @Trace activeTag: string = '';
   @Trace showDone: boolean = true;
 
@@ -56,6 +65,7 @@ export class OkrStore {
   private removedObjectives: string[] = [];
   private removedProjects: string[] = [];
   private removedTags: string[] = [];
+  private removedReviews: string[] = [];
   private suppressPush: boolean = false;
 
   async init(context: common.UIAbilityContext): Promise<void> {
@@ -213,6 +223,332 @@ export class OkrStore {
     return count;
   }
 
+
+  // ---------- 周记 ----------
+
+  findReview(id: string): OkrReviewItem | undefined {
+    for (let i = 0; i < this.reviews.length; i++) {
+      if (this.reviews[i].id === id) {
+        return this.reviews[i];
+      }
+    }
+    return undefined;
+  }
+
+  /** 某目标下的周记，按周倒序 */
+  reviewsOf(objectiveId: string): OkrReviewItem[] {
+    const list: OkrReviewItem[] = this.reviews.filter((item: OkrReviewItem): boolean => {
+      return item.objectiveId === objectiveId;
+    });
+    return list.sort((a: OkrReviewItem, b: OkrReviewItem): number => {
+      if (a.weekKey !== b.weekKey) {
+        return a.weekKey < b.weekKey ? 1 : -1;
+      }
+      return b.updatedAt - a.updatedAt;
+    });
+  }
+
+  reviewOfWeek(objectiveId: string, weekKey: string): OkrReviewItem | undefined {
+    for (let i = 0; i < this.reviews.length; i++) {
+      if (this.reviews[i].objectiveId === objectiveId && this.reviews[i].weekKey === weekKey) {
+        return this.reviews[i];
+      }
+    }
+    return undefined;
+  }
+
+  /** 同一目标同一周只保留一条，写入即覆盖 */
+  saveReview(objectiveId: string, weekKey: string, text: string): void {
+    const body: string = text.trim();
+    const existing: OkrReviewItem | undefined = this.reviewOfWeek(objectiveId, weekKey);
+    if (body.length === 0) {
+      if (existing !== undefined) {
+        this.deleteReview(existing.id);
+      }
+      return;
+    }
+    const now: number = okrNow();
+    if (existing !== undefined) {
+      const next: OkrReviewItem[] = [];
+      for (let i = 0; i < this.reviews.length; i++) {
+        if (this.reviews[i].id === existing.id) {
+          next.push({
+            id: existing.id,
+            objectiveId: objectiveId,
+            weekKey: weekKey,
+            text: body,
+            createdAt: existing.createdAt,
+            updatedAt: now
+          });
+        } else {
+          next.push(this.reviews[i]);
+        }
+      }
+      this.reviews = next;
+      this.persist();
+      return;
+    }
+    this.reviews = this.reviews.concat([{
+      id: okrNewId('rv'),
+      objectiveId: objectiveId,
+      weekKey: weekKey,
+      text: body,
+      createdAt: now,
+      updatedAt: now
+    }]);
+    this.persist();
+  }
+
+  deleteReview(id: string): void {
+    const next: OkrReviewItem[] = [];
+    for (let i = 0; i < this.reviews.length; i++) {
+      if (this.reviews[i].id !== id) {
+        next.push(this.reviews[i]);
+      }
+    }
+    this.reviews = next;
+    this.removedReviews.push(id);
+    this.persist();
+  }
+
+  // ---------- 进度分析 ----------
+
+  /** 目标的有效起止：没填就用创建日到季度末 */
+  objectiveStart(objectiveId: string): number {
+    const objective: OkrObjectiveItem | undefined = this.findObjective(objectiveId);
+    if (objective === undefined) {
+      return 0;
+    }
+    if (objective.startDate > 0) {
+      return objective.startDate;
+    }
+    return objective.createdAt > 0 ? objective.createdAt : 0;
+  }
+
+  objectiveEnd(objectiveId: string): number {
+    const objective: OkrObjectiveItem | undefined = this.findObjective(objectiveId);
+    if (objective === undefined) {
+      return 0;
+    }
+    if (objective.endDate > 0) {
+      return objective.endDate;
+    }
+    return objective.createdAt > 0 ? objective.createdAt : 0;
+  }
+
+  /** KR 的应达百分比：继承所属目标的节奏，缺失时回退到 KR 自身截止日 */
+  krExpected(krId: string): number {
+    const kr: OkrKrItem | undefined = this.findKr(krId);
+    if (kr === undefined) {
+      return -1;
+    }
+    const start: number = this.objectiveStart(kr.objectiveId);
+    let end: number = this.objectiveEnd(kr.objectiveId);
+    if (start <= 0) {
+      return kr.dueDate > 0
+        ? okrExpectedPercent(kr.createdAt, kr.dueDate, okrNow()) : -1;
+    }
+    if (end <= start && kr.dueDate > start) {
+      end = kr.dueDate;
+    }
+    return okrExpectedPercent(start, end, okrNow());
+  }
+
+  /** KR 最近一次有人动它的时间（KR 本身或它下面的任务） */
+  krLastTouch(krId: string): number {
+    const kr: OkrKrItem | undefined = this.findKr(krId);
+    let stamp: number = kr === undefined ? 0 : kr.updatedAt;
+    const linked: OkrIdeaItem[] = this.ideasOfKr(krId);
+    for (let i = 0; i < linked.length; i++) {
+      if (linked[i].updatedAt > stamp) {
+        stamp = linked[i].updatedAt;
+      }
+    }
+    return stamp;
+  }
+
+  krState(krId: string): OkrFlowState {
+    const actual: number = this.krProgress(krId);
+    const expected: number = this.krExpected(krId);
+    return okrFlowState(actual, expected, okrIdleDays(this.krLastTouch(krId), okrNow()));
+  }
+
+  objectiveState(objectiveId: string): OkrFlowState {
+    const list: OkrKrItem[] = this.krsOfObjective(objectiveId);
+    if (list.length === 0) {
+      return OkrFlowState.OnTrack;
+    }
+    let worst: OkrFlowState = OkrFlowState.OnTrack;
+    for (let i = 0; i < list.length; i++) {
+      const state: OkrFlowState = this.krState(list[i].id);
+      if (state === OkrFlowState.Behind) {
+        return OkrFlowState.Behind;
+      }
+      if (state === OkrFlowState.Stalled) {
+        worst = OkrFlowState.Stalled;
+      }
+    }
+    return worst;
+  }
+
+  /** 全部 KR 的平均实际进度 */
+  overallProgress(): number {
+    if (this.krs.length === 0) {
+      return 0;
+    }
+    let sum: number = 0;
+    for (let i = 0; i < this.krs.length; i++) {
+      sum += this.krProgress(this.krs[i].id);
+    }
+    return Math.round(sum / this.krs.length);
+  }
+
+  /** 全部 KR 的平均应达进度，没有节奏时返回 -1 */
+  overallExpected(): number {
+    let sum: number = 0;
+    let counted: number = 0;
+    for (let i = 0; i < this.krs.length; i++) {
+      const expected: number = this.krExpected(this.krs[i].id);
+      if (expected >= 0) {
+        sum += expected;
+        counted++;
+      }
+    }
+    return counted === 0 ? -1 : Math.round(sum / counted);
+  }
+
+  /** 正在进行中的目标，按截止日升序 */
+  activeObjectives(): OkrObjectiveItem[] {
+    const today: number = okrDay(0);
+    const list: OkrObjectiveItem[] = this.objectives.filter((item: OkrObjectiveItem): boolean => {
+      return this.objectiveEnd(item.id) <= 0 || this.objectiveEnd(item.id) >= today;
+    });
+    if (list.length === 0) {
+      return this.objectives.slice();
+    }
+    return list.sort((a: OkrObjectiveItem, b: OkrObjectiveItem): number => {
+      return this.objectiveEnd(a.id) - this.objectiveEnd(b.id);
+    });
+  }
+
+  currentObjective(): OkrObjectiveItem | undefined {
+    const list: OkrObjectiveItem[] = this.activeObjectives();
+    return list.length === 0 ? undefined : list[0];
+  }
+
+  /** 已结束的目标里最近一个，用于「上次结算」 */
+  settledObjective(): OkrObjectiveItem | undefined {
+    const today: number = okrDay(0);
+    let winner: OkrObjectiveItem | undefined = undefined;
+    let bestEnd: number = 0;
+    for (let i = 0; i < this.objectives.length; i++) {
+      const end: number = this.objectiveEnd(this.objectives[i].id);
+      if (end > 0 && end < today && end > bestEnd) {
+        bestEnd = end;
+        winner = this.objectives[i];
+      }
+    }
+    return winner;
+  }
+
+  /** 连续记录天数：从今天（或昨天）往回数有活动的天数 */
+  streakDays(): number {
+    const day: number = 86400000;
+    let cursor: number = okrDay(0);
+    let streak: number = 0;
+    let grace: boolean = true;
+    for (let step: number = 0; step < 400; step++) {
+      if (this.hasActivityOn(cursor)) {
+        streak++;
+        cursor = cursor - day;
+        grace = false;
+        continue;
+      }
+      if (grace) {
+        // 今天还没记录不算断，从昨天继续数
+        cursor = cursor - day;
+        grace = false;
+        continue;
+      }
+      break;
+    }
+    return streak;
+  }
+
+  /** 本周（周一起）有记录的天数 */
+  weekActiveDays(): number {
+    const day: number = 86400000;
+    const today: number = okrDay(0);
+    const weekday: number = new Date(today).getDay();
+    const mondayOffset: number = weekday === 0 ? 6 : weekday - 1;
+    let count: number = 0;
+    for (let i = 0; i < 7; i++) {
+      if (this.hasActivityOn(today - mondayOffset * day + i * day)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  longestStreak(): number {
+    const day: number = 86400000;
+    let best: number = 0;
+    let run: number = 0;
+    let cursor: number = okrDay(0);
+    for (let step: number = 0; step < 400; step++) {
+      if (this.hasActivityOn(cursor)) {
+        run++;
+        if (run > best) {
+          best = run;
+        }
+        cursor = cursor - day;
+      } else {
+        run = 0;
+        cursor = cursor - day;
+      }
+    }
+    return best;
+  }
+
+  private hasActivityOn(dayStart: number): boolean {
+    for (let i = 0; i < this.ideas.length; i++) {
+      const item: OkrIdeaItem = this.ideas[i];
+      if (item.createdAt >= dayStart && item.createdAt < dayStart + 86400000) {
+        return true;
+      }
+      if (item.updatedAt >= dayStart && item.updatedAt < dayStart + 86400000) {
+        return true;
+      }
+    }
+    return this.reviews.some((item: OkrReviewItem): boolean => {
+      return item.updatedAt >= dayStart && item.updatedAt < dayStart + 86400000;
+    });
+  }
+
+  /** 今日任务：今天到期或已逾期的任务，未完成排前面 */
+  todayTasks(): OkrIdeaItem[] {
+    const dayStart: number = okrDay(0);
+    const dayEnd: number = dayStart + 86400000;
+    const list: OkrIdeaItem[] = this.ideas.filter((item: OkrIdeaItem): boolean => {
+      if (item.dueDate <= 0) {
+        return false;
+      }
+      return item.dueDate < dayEnd;
+    });
+    return list.sort((a: OkrIdeaItem, b: OkrIdeaItem): number => {
+      if (a.done !== b.done) {
+        return a.done ? 1 : -1;
+      }
+      if (a.dueDate !== b.dueDate) {
+        return a.dueDate - b.dueDate;
+      }
+      if (a.priority !== b.priority) {
+        return b.priority - a.priority;
+      }
+      return b.createdAt - a.createdAt;
+    });
+  }
+
   // ---------- 想法 ----------
 
   addIdea(text: string, priority: number, dueDate: number, projectId: string = ''): OkrIdeaItem {
@@ -346,6 +682,33 @@ export class OkrStore {
       updatedAt: now
     };
     this.objectives = [item].concat(this.objectives);
+    this.persist();
+    return item;
+  }
+
+  /** 带起止时间新建目标：应达线依赖这个跨度 */
+  addObjectiveWithSpan(title: string, desc: string, startDate: number, endDate: number,
+    projectId: string = ''): OkrObjectiveItem {
+    const item: OkrObjectiveItem = this.addObjective(title, '', desc, projectId);
+    const next: OkrObjectiveItem[] = [];
+    for (let i = 0; i < this.objectives.length; i++) {
+      if (this.objectives[i].id === item.id) {
+        next.push({
+          id: item.id,
+          title: item.title,
+          period: item.period,
+          startDate: startDate > 0 ? startDate : okrDay(0),
+          endDate: endDate > startDate ? endDate : okrDay(0) + 89 * 86400000,
+          desc: item.desc,
+          projectId: projectId,
+          createdAt: item.createdAt,
+          updatedAt: okrNow()
+        });
+      } else {
+        next.push(this.objectives[i]);
+      }
+    }
+    this.objectives = next;
     this.persist();
     return item;
   }
@@ -517,6 +880,21 @@ export class OkrStore {
       }
     }
     return Math.round((doneCount / list.length) * 100);
+  }
+
+  /** 项目下 KR 的平均应达进度 */
+  projectExpected(projectId: string): number {
+    const list: OkrKrItem[] = this.krsOfProject(projectId);
+    let sum: number = 0;
+    let counted: number = 0;
+    for (let i = 0; i < list.length; i++) {
+      const expected: number = this.krExpected(list[i].id);
+      if (expected >= 0) {
+        sum = sum + expected;
+        counted++;
+      }
+    }
+    return counted === 0 ? -1 : Math.round(sum / counted);
   }
 
   addProject(title: string, desc: string, colorIndex: number): OkrProjectItem {
@@ -776,6 +1154,9 @@ export class OkrStore {
       if (data.projects !== undefined && data.projects !== null) {
         this.projects = data.projects;
       }
+      if (data.reviews !== undefined && data.reviews !== null) {
+        this.reviews = data.reviews;
+      }
       this.normalize();
     } catch (err) {
       hilog.error(DOMAIN, 'OkrStore', 'parse failed: %{public}s', JSON.stringify(err));
@@ -855,6 +1236,25 @@ export class OkrStore {
       });
     }
     this.projects = projects;
+
+    const reviews: OkrReviewItem[] = [];
+    for (let i = 0; i < this.reviews.length; i++) {
+      const source: OkrReviewItem = this.reviews[i];
+      if (source === null || source === undefined || typeof source.id !== 'string') {
+        continue;
+      }
+      const stamp: number = typeof source.updatedAt === 'number' && source.updatedAt > 0
+        ? source.updatedAt : source.createdAt;
+      reviews.push({
+        id: source.id,
+        objectiveId: typeof source.objectiveId === 'string' ? source.objectiveId : '',
+        weekKey: typeof source.weekKey === 'string' ? source.weekKey : '',
+        text: typeof source.text === 'string' ? source.text : '',
+        createdAt: source.createdAt,
+        updatedAt: stamp
+      });
+    }
+    this.reviews = reviews;
   }
 
   private persist(): void {
@@ -863,7 +1263,8 @@ export class OkrStore {
       krs: this.krs,
       objectives: this.objectives,
       tags: this.tags,
-      projects: this.projects
+      projects: this.projects,
+      reviews: this.reviews
     };
     try {
       if (this.pref !== undefined) {
@@ -953,12 +1354,25 @@ export class OkrStore {
         updatedAt: item.updatedAt
       });
     }
+    const reviews: ApiReviewItem[] = [];
+    for (let i = 0; i < this.reviews.length; i++) {
+      const item: OkrReviewItem = this.reviews[i];
+      reviews.push({
+        id: item.id,
+        objectiveId: item.objectiveId,
+        weekKey: item.weekKey,
+        text: item.text,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt
+      });
+    }
     const removed: ApiRemoved = {
       objectives: this.removedObjectives.slice(),
       krs: this.removedKrs.slice(),
       ideas: this.removedIdeas.slice(),
       tags: this.removedTags.slice(),
-      projects: this.removedProjects.slice()
+      projects: this.removedProjects.slice(),
+      reviews: this.removedReviews.slice()
     };
     return {
       deviceId: deviceId,
@@ -967,6 +1381,7 @@ export class OkrStore {
       ideas: ideas,
       tags: tags,
       projects: projects,
+      reviews: reviews,
       removed: removed
     };
   }
@@ -977,6 +1392,7 @@ export class OkrStore {
     this.removedObjectives = [];
     this.removedProjects = [];
     this.removedTags = [];
+    this.removedReviews = [];
   }
 
   applyRemote(remote: ApiPullResult): boolean {
@@ -1089,6 +1505,47 @@ export class OkrStore {
       }
     }
 
+    for (let i = 0; i < remote.reviews.length; i++) {
+      const incoming: ApiReviewItem = remote.reviews[i];
+      if (this.findReview(incoming.id) === undefined) {
+        this.reviews = this.reviews.concat([{
+          id: incoming.id,
+          objectiveId: incoming.objectiveId,
+          weekKey: incoming.weekKey,
+          text: incoming.text,
+          createdAt: incoming.createdAt,
+          updatedAt: incoming.updatedAt
+        }]);
+        changed = true;
+        continue;
+      }
+      const next: OkrReviewItem[] = [];
+      let touched: boolean = false;
+      for (let j = 0; j < this.reviews.length; j++) {
+        if (this.reviews[j].id !== incoming.id) {
+          next.push(this.reviews[j]);
+          continue;
+        }
+        if (incoming.updatedAt > this.reviews[j].updatedAt) {
+          next.push({
+            id: incoming.id,
+            objectiveId: incoming.objectiveId,
+            weekKey: incoming.weekKey,
+            text: incoming.text,
+            createdAt: incoming.createdAt,
+            updatedAt: incoming.updatedAt
+          });
+          touched = true;
+        } else {
+          next.push(this.reviews[j]);
+        }
+      }
+      if (touched) {
+        this.reviews = next;
+        changed = true;
+      }
+    }
+
     this.suppressPush = false;
     if (changed) {
       this.persistLocal();
@@ -1102,7 +1559,8 @@ export class OkrStore {
       krs: this.krs,
       objectives: this.objectives,
       tags: this.tags,
-      projects: this.projects
+      projects: this.projects,
+      reviews: this.reviews
     };
     if (this.pref === undefined) {
       return;
