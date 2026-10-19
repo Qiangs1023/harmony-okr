@@ -1,6 +1,7 @@
 import {
   OkrProjectItem,
   OkrPriority,
+  OkrTagItem,
   okrDay,
   okrNow,
   okrParseTags,
@@ -10,7 +11,10 @@ import {
   okrTagColor
 } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
-import { OkrSelectChip, OkrTagChip } from './OkrCommon';
+import { OkrSelectChip } from './OkrCommon';
+
+const TAG_CHIP_WIDTH: number = 76;
+const TAG_CHIP_GAP: number = 8;
 
 @ComponentV2
 export struct QuickCapture {
@@ -18,7 +22,8 @@ export struct QuickCapture {
   @Local priority: number = OkrPriority.Medium;
   @Local due: number = 0;
   @Local projectId: string = '';
-  @Local projectPickerOpen: boolean = false;
+  @Local pickedTags: string[] = [];
+  @Local dragFrom: number = -1;
 
   private levels(): number[] {
     return [OkrPriority.Low, OkrPriority.Medium, OkrPriority.High];
@@ -32,6 +37,10 @@ export struct QuickCapture {
     return okrParseTags(this.draft).tags;
   }
 
+  private tagList(): OkrTagItem[] {
+    return OKR_STORE.tags;
+  }
+
   private projects(): OkrProjectItem[] {
     return OKR_STORE.projectList(false);
   }
@@ -42,6 +51,34 @@ export struct QuickCapture {
     }
     const title: string = OKR_STORE.projectTitle(this.projectId);
     return title.length > 0 ? title : '无项目';
+  }
+
+  private isPicked(name: string): boolean {
+    return this.pickedTags.indexOf(name) >= 0;
+  }
+
+  private toggleTag(name: string): void {
+    if (this.isPicked(name)) {
+      this.pickedTags = this.pickedTags.filter((item: string): boolean => item !== name);
+      return;
+    }
+    this.pickedTags = this.pickedTags.concat([name]);
+  }
+
+  private syncDraftTags(): void {
+    const parsed: string[] = this.draftTags();
+    if (parsed.length === 0) {
+      return;
+    }
+    const merged: string[] = this.pickedTags.slice();
+    for (let i = 0; i < parsed.length; i++) {
+      if (merged.indexOf(parsed[i]) < 0) {
+        merged.push(parsed[i]);
+      }
+    }
+    if (merged.length !== this.pickedTags.length) {
+      this.pickedTags = merged;
+    }
   }
 
   private dueDaysOf(label: string): number {
@@ -85,10 +122,25 @@ export struct QuickCapture {
     if (!this.canSubmit()) {
       return;
     }
-    OKR_STORE.addIdea(this.draft, this.priority, this.due, this.projectId);
+    const tags: string[] = this.pickedTags.slice();
+    let title: string = this.draft.trim();
+    // 正文里已经写了 #标签 时，避免拼进标题造成重复
+    const parsed: string[] = this.draftTags();
+    if (parsed.length > 0) {
+      const body: string = okrParseTags(this.draft).title;
+      title = body.length > 0 ? body : this.draft.trim();
+    } else if (tags.length > 0) {
+      const suffix: string[] = [];
+      for (let i = 0; i < tags.length; i++) {
+        suffix.push(`#${tags[i]}`);
+      }
+      title = `${title} ${suffix.join(' ')}`;
+    }
+    OKR_STORE.addIdea(title, this.priority, this.due, this.projectId);
     this.draft = '';
     this.due = 0;
     this.priority = OkrPriority.Medium;
+    this.pickedTags = [];
     this.getUIContext().getPromptAction().showToast({ message: '已加入收件箱' });
   }
 
@@ -96,10 +148,7 @@ export struct QuickCapture {
   projectRow() {
     Scroll() {
       Row({ space: 8 }) {
-        Text('项目')
-          .fontSize(12)
-          .fontColor($r('app.color.okr_text_tertiary'))
-        ForEach(this.projects(), (item: OkrProjectItem) => {
+        ForEach(this.projects(), (item: OkrProjectItem): void => {
           Row({ space: 5 }) {
             Row()
               .width(8)
@@ -163,59 +212,110 @@ export struct QuickCapture {
     .edgeEffect(EdgeEffect.None)
   }
 
-  build() {
-    Column({ space: 10 }) {
-      Column({ space: 8 }) {
-        TextArea({
-          placeholder: '想到什么就写下来，用 #标签 归类',
-          text: this.draft
-        })
-          .width('100%')
-          .height(112)
-          .fontSize(15)
-          .borderRadius(12)
-          .backgroundColor($r('app.color.okr_bg'))
-          .onChange((value: string): void => {
-            this.draft = value;
-          })
-          .onSubmit((): void => {
-            this.submit();
-          })
+  @Builder
+  tagPicker() {
+    if (this.tagList().length === 0) {
+      Text('还没有标签，在标题里写 #标签 就能自动创建')
+        .fontSize(11)
+        .fontColor($r('app.color.okr_text_tertiary'))
+        .width('100%')
+    } else {
+    Column({ space: 4 }) {
+      Row() {
+        Text('标签')
+          .fontSize(11)
+          .fontColor($r('app.color.okr_text_tertiary'))
+        Text('长按可拖动排序')
+          .fontSize(10)
+          .fontColor($r('app.color.okr_text_tertiary'))
+      }
+      .width('100%')
 
-        if (this.projects().length > 0) {
-          Row({ space: 8 }) {
-            Text(`归属：${this.projectLabel()}`)
+      Scroll() {
+        Row({ space: 8 }) {
+          ForEach(this.tagList(), (item: OkrTagItem, index: number): void => {
+            Text(item.name)
               .fontSize(12)
-              .fontColor($r('app.color.okr_project'))
-              .layoutWeight(1)
+              .width(TAG_CHIP_WIDTH)
+              .height(32)
+              .textAlign(TextAlign.Center)
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis })
-            Button('不归属')
-              .height(30)
-              .fontSize(11)
-              .backgroundColor($r('app.color.okr_track'))
-              .fontColor($r('app.color.okr_text_secondary'))
-              .onClick((): void => {
-                this.projectId = '';
+              .borderRadius(16)
+              .fontColor(this.isPicked(item.name)
+                ? $r('app.color.okr_on_primary')
+                : $r('app.color.okr_text_secondary'))
+              .backgroundColor(this.isPicked(item.name)
+                ? okrTagColor(item.colorIndex)
+                : $r('app.color.okr_track'))
+              .opacity(this.dragFrom === index ? 0.4 : 1)
+              .draggable(true)
+              .onDragStart((): void => {
+                this.dragFrom = index;
               })
-          }
-          .width('100%')
+              .onClick((): void => {
+                this.toggleTag(item.name);
+              })
+          }, (item: OkrTagItem): string => item.name)
         }
       }
       .width('100%')
-      .padding(12)
-      .backgroundColor($r('app.color.okr_bg'))
-      .borderRadius(12)
-      .alignItems(HorizontalAlign.Start)
+      .height(34)
+      .scrollable(ScrollDirection.Horizontal)
+      .scrollBar(BarState.Off)
+      .edgeEffect(EdgeEffect.None)
+      .onDrop((event: DragEvent): void => {
+        // DragEvent.getX() 返回的是像素，而标签宽度常量是 vp，需换算后再算落点
+        const pitch: number = vp2px(TAG_CHIP_WIDTH + TAG_CHIP_GAP);
+        let target: number = Math.round(event.getX() / pitch);
+        const size: number = this.tagList().length;
+        if (target < 0) {
+          target = 0;
+        }
+        if (target > size - 1) {
+          target = size - 1;
+        }
+        if (this.dragFrom >= 0) {
+          OKR_STORE.moveTag(this.dragFrom, target);
+        }
+        this.dragFrom = -1;
+      })
+    }
+    .width('100%')
+    .alignItems(HorizontalAlign.Start)
+    }
+  }
+
+  build() {
+    Column({ space: 10 }) {
+      TextArea({
+        placeholder: '想到什么就写下来，用 #标签 归类',
+        text: this.draft
+      })
+        .width('100%')
+        .height(64)
+        .fontSize(14)
+        .borderRadius(12)
+        .backgroundColor($r('app.color.okr_bg'))
+        .onChange((value: string): void => {
+          this.draft = value;
+          this.syncDraftTags();
+        })
+        .onSubmit((): void => {
+          this.submit();
+        })
+
+      this.optionRow()
 
       if (this.projects().length > 0) {
         this.projectRow()
       }
-      this.optionRow()
+
+      this.tagPicker()
 
       Button(this.canSubmit() ? '记下' : '先写点什么')
         .width('100%')
-        .height(46)
+        .height(44)
         .fontSize(15)
         .fontWeight(FontWeight.Medium)
         .backgroundColor($r('app.color.okr_primary'))
@@ -224,28 +324,11 @@ export struct QuickCapture {
         .onClick((): void => {
           this.submit();
         })
-
-      if (this.draftTags().length > 0) {
-        Row({ space: 6 }) {
-          Text('识别到')
-            .fontSize(11)
-            .fontColor($r('app.color.okr_text_tertiary'))
-          ForEach(this.draftTags(), (tagName: string): void => {
-            OkrTagChip({
-              chipText: tagName,
-              colorIndex: OKR_STORE.tagColorIndex(tagName),
-              solid: true
-            })
-          }, (tagName: string): string => tagName)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Center)
-      }
     }
     .width('100%')
-    .padding(14)
+    .padding(12)
     .alignItems(HorizontalAlign.Start)
     .backgroundColor($r('app.color.okr_card'))
-    .borderRadius(16)
+    .borderRadius(14)
   }
 }

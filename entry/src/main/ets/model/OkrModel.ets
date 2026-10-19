@@ -11,6 +11,7 @@ export enum OkrPriority {
 export interface OkrTagItem {
   name: string;
   colorIndex: number;
+  sortIndex: number;
 }
 
 export interface OkrProjectItem {

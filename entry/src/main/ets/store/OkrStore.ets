@@ -609,7 +609,24 @@ export class OkrStore {
     if (trimmed.length === 0 || this.hasTag(trimmed)) {
       return;
     }
-    this.tags = this.tags.concat([{ name: trimmed, colorIndex: colorIndex }]);
+    this.tags = this.tags.concat([{
+      name: trimmed,
+      colorIndex: colorIndex,
+      sortIndex: this.tags.length
+    }]);
+    this.persist();
+  }
+
+  moveTag(from: number, to: number): void {
+    const size: number = this.tags.length;
+    if (from < 0 || from >= size || to < 0 || to >= size || from === to) {
+      return;
+    }
+    const next: OkrTagItem[] = this.tags.slice();
+    const moved: OkrTagItem = next[from];
+    next.splice(from, 1);
+    next.splice(to, 0, moved);
+    this.tags = next;
     this.persist();
   }
 
@@ -630,7 +647,7 @@ export class OkrStore {
     const tags: OkrTagItem[] = [];
     for (let i = 0; i < this.tags.length; i++) {
       tags.push(this.tags[i].name === oldName
-        ? { name: trimmed, colorIndex: this.tags[i].colorIndex }
+        ? { name: trimmed, colorIndex: this.tags[i].colorIndex, sortIndex: this.tags[i].sortIndex }
         : this.tags[i]);
     }
     this.tags = tags;
@@ -661,7 +678,7 @@ export class OkrStore {
     const tags: OkrTagItem[] = [];
     for (let i = 0; i < this.tags.length; i++) {
       tags.push(this.tags[i].name === name
-        ? { name: this.tags[i].name, colorIndex: colorIndex }
+        ? { name: this.tags[i].name, colorIndex: colorIndex, sortIndex: this.tags[i].sortIndex }
         : this.tags[i]);
     }
     this.tags = tags;
@@ -720,7 +737,7 @@ export class OkrStore {
         }
       }
       if (!exists) {
-        const tag: OkrTagItem = { name: name, colorIndex: okrHashTag(name) };
+        const tag: OkrTagItem = { name: name, colorIndex: okrHashTag(name), sortIndex: next.length };
         next.push(tag);
       }
     }
@@ -760,6 +777,16 @@ export class OkrStore {
   }
 
   private normalize(): void {
+    const normalizedTags: OkrTagItem[] = [];
+    for (let i = 0; i < this.tags.length; i++) {
+      normalizedTags.push({
+        name: this.tags[i].name,
+        colorIndex: this.tags[i].colorIndex,
+        sortIndex: typeof this.tags[i].sortIndex === 'number' ? this.tags[i].sortIndex : i
+      });
+    }
+    this.tags = normalizedTags;
+
     const krs: OkrKrItem[] = [];
     for (let i = 0; i < this.krs.length; i++) {
       const source: OkrKrItem = this.krs[i];
@@ -896,7 +923,12 @@ export class OkrStore {
     }
     const tags: ApiTagItem[] = [];
     for (let i = 0; i < this.tags.length; i++) {
-      tags.push({ name: this.tags[i].name, colorIndex: this.tags[i].colorIndex });
+      // 数组顺序即展示顺序，sortIndex 一律按当前下标重算，避免拖拽后残留旧值
+      tags.push({
+        name: this.tags[i].name,
+        colorIndex: this.tags[i].colorIndex,
+        sortIndex: i
+      });
     }
     const projects: ApiProjectItem[] = [];
     for (let i = 0; i < this.projects.length; i++) {
@@ -1036,7 +1068,11 @@ export class OkrStore {
         }
       }
       if (!exists) {
-        this.tags = this.tags.concat([{ name: incoming.name, colorIndex: incoming.colorIndex }]);
+        this.tags = this.tags.concat([{
+          name: incoming.name,
+          colorIndex: incoming.colorIndex,
+          sortIndex: incoming.sortIndex
+        }]);
         changed = true;
       }
     }

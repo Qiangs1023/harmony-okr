@@ -57,6 +57,7 @@ export interface ApiIdeaItem {
 export interface ApiTagItem {
   name: string;
   colorIndex: number;
+  sortIndex: number;
 }
 
 export interface ApiRemoved {
@@ -154,6 +155,7 @@ interface RawIdea {
 interface RawTag {
   name?: string;
   colorIndex?: number;
+  sortIndex?: number;
 }
 
 interface RawConflict {
@@ -284,7 +286,7 @@ function mapTag(raw: RawTag): ApiTagItem | undefined {
   if (name.length === 0) {
     return undefined;
   }
-  return { name: name, colorIndex: n(raw.colorIndex) };
+  return { name: name, colorIndex: n(raw.colorIndex), sortIndex: n(raw.sortIndex) };
 }
 
 async function request(url: string, method: http.RequestMethod, body: string, token: string): Promise<HttpReply> {

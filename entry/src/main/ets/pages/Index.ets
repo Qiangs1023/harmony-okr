@@ -210,42 +210,39 @@ struct Index {
 
   @Builder
   inboxTab() {
-    Column({ space: 12 }) {
-      QuickCapture()
-      TagFilterBar()
+    List({ space: 10 }) {
+      ListItem() {
+        QuickCapture()
+      }
+
+      ListItem() {
+        TagFilterBar()
+      }
+
       if (this.visibleIdeas().length === 0) {
-        List() {
+        ListItem() {
+          OkrEmptyHint({
+            hintText: OKR_STORE.activeTag.length > 0 ? '该标签下还没有内容' : '收件箱是空的',
+            subText: OKR_STORE.activeTag.length > 0 ? '换个标签看看' : '在上方输入框写下第一个想法'
+          })
+        }
+      } else {
+        ForEach(this.visibleIdeas(), (ideaItem: OkrIdeaItem): void => {
           ListItem() {
-            OkrEmptyHint({
-              hintText: OKR_STORE.activeTag.length > 0 ? '该标签下还没有内容' : '收件箱是空的',
-              subText: OKR_STORE.activeTag.length > 0 ? '换个标签看看' : '在上方输入框写下第一个想法'
+            IdeaCard({
+              ideaId: ideaItem.id,
+              onOpen: (id: string): void => {
+                this.openIdea(id);
+              }
             })
           }
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
-      } else {
-        List({ space: 10 }) {
-          ForEach(this.visibleIdeas(), (ideaItem: OkrIdeaItem) => {
-            ListItem() {
-              IdeaCard({
-                ideaId: ideaItem.id,
-                onOpen: (id: string): void => {
-                  this.openIdea(id);
-                }
-              })
-            }
-          }, (ideaItem: OkrIdeaItem): string => ideaItem.id)
-        }
-        .width('100%')
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
+        }, (ideaItem: OkrIdeaItem): string => ideaItem.id)
       }
     }
     .width('100%')
     .height('100%')
     .padding({ left: 16, right: 16 })
+    .scrollBar(BarState.Off)
   }
 
   @Builder

@@ -124,7 +124,7 @@ function mapProject(r) {
 }
 
 function mapTag(r) {
-  return { name: r.name, colorIndex: Number(r.color_index) };
+  return { name: r.name, colorIndex: Number(r.color_index), sortIndex: Number(r.sort_index) };
 }
 
 function requireUser(req) {
@@ -176,7 +176,7 @@ async function pull(userId, sinceSeq) {
   }
   if (ids.tag.size) {
     const r = await pool.query(
-      'SELECT name,color_index FROM tag WHERE user_id=$1 AND name = ANY($2)',
+      'SELECT name,color_index,sort_index FROM tag WHERE user_id=$1 AND name = ANY($2) ORDER BY sort_index',
       [userId, [...ids.tag]]
     );
     out.tags = r.rows.map(mapTag);
@@ -195,9 +195,10 @@ async function applyUpsert(client, userId, deviceId, entity, item) {
 
   if (entity === 'tag') {
     await client.query(
-      `INSERT INTO tag (user_id,name,color_index) VALUES ($1,$2,$3)
-       ON CONFLICT (user_id,name) DO UPDATE SET color_index=EXCLUDED.color_index`,
-      [userId, id, num(item.colorIndex)]
+      `INSERT INTO tag (user_id,name,color_index,sort_index) VALUES ($1,$2,$3,$4)
+       ON CONFLICT (user_id,name) DO UPDATE SET color_index=EXCLUDED.color_index,
+         sort_index=EXCLUDED.sort_index`,
+      [userId, id, num(item.colorIndex), num(item.sortIndex)]
     );
     await logChange(client, userId, entity, id, stamp, 0);
     return { conflict: false };
