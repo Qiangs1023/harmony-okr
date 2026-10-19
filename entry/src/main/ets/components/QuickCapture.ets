@@ -18,6 +18,7 @@ const TAG_CHIP_GAP: number = 8;
 
 @ComponentV2
 export struct QuickCapture {
+  @Param autoFocus: boolean = false;
   @Event onDone: () => void = (): void => {
   };
   @Local draft: string = '';
@@ -307,6 +308,8 @@ export struct QuickCapture {
         .onSubmit((): void => {
           this.submit();
         })
+        .focusable(this.autoFocus)
+        .defaultFocus(this.autoFocus)
 
       this.optionRow()
 

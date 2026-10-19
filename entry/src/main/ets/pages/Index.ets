@@ -270,6 +270,7 @@ struct Index {
         .width('100%')
 
       QuickCapture({
+        autoFocus: this.captureOpen,
         onDone: (): void => {
           this.captureOpen = false;
         }
@@ -514,9 +515,10 @@ struct Index {
     .height('100%')
     .backgroundColor($r('app.color.okr_bg'))
     .bindSheet($$this.captureOpen, this.captureSheet(), {
-      height: SheetSize.MEDIUM,
+      height: SheetSize.FIT_CONTENT,
       dragBar: true,
-      showClose: true
+      showClose: true,
+      keyboardAvoidMode: SheetKeyboardAvoidMode.TRANSLATE_AND_RESIZE
     })
   }
 }

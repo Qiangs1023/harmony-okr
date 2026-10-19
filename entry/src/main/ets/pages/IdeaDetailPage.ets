@@ -1,4 +1,5 @@
 import { OkrSelectChip, OkrTagChip } from '../components/OkrCommon';
+import { PageShell, SectionCard } from '../components/PageShell';
 import {
   OkrIdeaItem,
   OkrIdeaParam,
@@ -284,192 +285,175 @@ struct IdeaDetailPage {
 
   build() {
     NavDestination() {
-      Column({ space: 14 }) {
-        this.topBar()
+      PageShell() {
+        Column({ space: 14 }) {
+          this.topBar()
 
-        Scroll() {
-          Column({ space: 16 }) {
-            Row({ space: 10 }) {
-              Checkbox({ name: 'detail_done', group: 'okr_detail' })
-                .shape(CheckBoxShape.CIRCLE)
-                .width(20)
-                .height(20)
-                .select(this.isDone())
-                .selectedColor($r('app.color.okr_primary'))
-                .onChange((checked: boolean): void => {
-                  this.toggleDone();
-                })
-              Text(this.isDone() ? '已完成' : '标记为完成')
-                .fontSize(13)
-                .fontColor($r('app.color.okr_text_secondary'))
-            }
-            .width('100%')
-            .alignItems(VerticalAlign.Center)
-
-            Column({ space: 6 }) {
-              this.sectionLabel('标题')
-              TextArea({ placeholder: '这条想法是什么？', text: this.titleDraft })
-                .height(84)
-                .fontSize(15)
-                .backgroundColor($r('app.color.okr_bg'))
-                .borderRadius(12)
-                .onChange((value: string): void => {
-                  this.titleDraft = value;
-                  this.dirty = true;
-                })
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: 8 }) {
-              this.sectionLabel('标签')
-              Flex({ wrap: FlexWrap.Wrap }) {
-                ForEach(this.tagList, (tagName: string) => {
-                  Row({ space: 4 }) {
-                    OkrTagChip({
-                      chipText: tagName,
-                      colorIndex: OKR_STORE.tagColorIndex(tagName),
-                      solid: false
+          Scroll() {
+            Column({ space: 12 }) {
+              SectionCard({ cardTitle: '完成状态' }) {
+                Row({ space: 10 }) {
+                  Checkbox({ name: 'detail_done', group: 'okr_detail' })
+                    .shape(CheckBoxShape.CIRCLE)
+                    .width(20)
+                    .height(20)
+                    .select(this.isDone())
+                    .selectedColor($r('app.color.okr_primary'))
+                    .onChange((checked: boolean): void => {
+                      this.toggleDone();
                     })
-                    Text('✕')
-                      .fontSize(11)
-                      .fontColor($r('app.color.okr_text_secondary'))
-                      .margin({ right: 6 })
-                      .onClick((): void => {
-                        this.removeTag(tagName);
-                      })
-                  }
-                }, (tagName: string): string => tagName)
-              }
-              .width('100%')
-              Row({ space: 8 }) {
-                TextInput({ placeholder: '添加标签', text: this.tagInput })
-                  .layoutWeight(1)
-                  .height(38)
-                  .fontSize(13)
-                  .borderRadius(19)
-                  .backgroundColor($r('app.color.okr_bg'))
-                  .onChange((value: string): void => {
-                    this.tagInput = value;
-                  })
-                  .onSubmit((enterKey: EnterKeyType): void => {
-                    this.addTag();
-                  })
-                Button('添加')
-                  .height(38)
-                  .fontSize(13)
-                  .backgroundColor($r('app.color.okr_primary_soft'))
-                  .fontColor($r('app.color.okr_primary'))
-                  .onClick((): void => {
-                    this.addTag();
-                  })
-              }
-              .width('100%')
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: 8 }) {
-              this.sectionLabel('优先级')
-              Row({ space: 8 }) {
-                ForEach(this.levels(), (level: number) => {
-                  OkrSelectChip({
-                    chipText: okrPriorityLabel(level),
-                    active: this.priority === level,
-                    chipColor: okrPriorityColor(level),
-                    onPick: (): void => {
-                      this.priority = level;
-                      this.dirty = true;
-                    }
-                  })
-                }, (level: number): string => `${level}`)
-              }
-              .width('100%')
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: 8 }) {
-              this.sectionLabel('截止日期')
-              Row({ space: 8 }) {
-                Button(this.dueLabel())
-                  .layoutWeight(1)
-                  .height(38)
-                  .fontSize(13)
-                  .backgroundColor($r('app.color.okr_bg'))
-                  .fontColor($r('app.color.okr_text_primary'))
-                  .onClick((): void => {
-                    this.pickDate();
-                  })
-                Button('清除')
-                  .height(38)
-                  .fontSize(13)
-                  .backgroundColor($r('app.color.okr_bg'))
-                  .fontColor($r('app.color.okr_text_secondary'))
-                  .onClick((): void => {
-                    this.clearDate();
-                  })
-              }
-              .width('100%')
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Column({ space: 8 }) {
-              this.sectionLabel('关联关键结果')
-              Button(this.krButtonLabel())
+                  Text(this.isDone() ? '已完成' : '标记为完成')
+                    .fontSize(13)
+                    .fontColor($r('app.color.okr_text_secondary'))
+                }
                 .width('100%')
-                .height(38)
-                .fontSize(13)
-                .backgroundColor($r('app.color.okr_bg'))
-                .fontColor(this.krButtonColor())
-                .onClick((): void => {
-                  this.krPickerOpen = !this.krPickerOpen;
-                })
-              if (this.krPickerOpen) {
-                this.krPicker()
+                .alignItems(VerticalAlign.Center)
               }
-            }
-            .width('100%')
-            .alignItems(HorizontalAlign.Start)
 
-            Column({ space: 6 }) {
-              this.sectionLabel('备注')
-              TextArea({ placeholder: '补充说明、上下文、后续动作…', text: this.noteDraft })
-                .height(110)
-                .fontSize(14)
-                .backgroundColor($r('app.color.okr_bg'))
-                .borderRadius(12)
-                .onChange((value: string): void => {
-                  this.noteDraft = value;
-                  this.dirty = true;
+              SectionCard({ cardTitle: '标题' }) {
+                TextArea({ placeholder: '这条想法是什么？', text: this.titleDraft })
+                  .height(84)
+                  .fontSize(15)
+                  .backgroundColor($r('app.color.okr_bg'))
+                  .borderRadius(12)
+                  .onChange((value: string): void => {
+                    this.titleDraft = value;
+                    this.dirty = true;
+                  })
+              }
+
+              SectionCard({ cardTitle: '标签', cardHint: '输入后回车即可添加' }) {
+                Flex({ wrap: FlexWrap.Wrap }) {
+                  ForEach(this.tagList, (tagName: string): void => {
+                    Row({ space: 4 }) {
+                      OkrTagChip({
+                        chipText: tagName,
+                        colorIndex: OKR_STORE.tagColorIndex(tagName),
+                        solid: false
+                      })
+                      Text('✕')
+                        .fontSize(11)
+                        .fontColor($r('app.color.okr_text_secondary'))
+                        .margin({ right: 6 })
+                        .onClick((): void => {
+                          this.removeTag(tagName);
+                        })
+                    }
+                  }, (tagName: string): string => tagName)
+                }
+                .width('100%')
+                Row({ space: 8 }) {
+                  TextInput({ placeholder: '添加标签', text: this.tagInput })
+                    .layoutWeight(1)
+                    .height(38)
+                    .fontSize(13)
+                    .borderRadius(19)
+                    .backgroundColor($r('app.color.okr_bg'))
+                    .onChange((value: string): void => {
+                      this.tagInput = value;
+                    })
+                    .onSubmit((enterKey: EnterKeyType): void => {
+                      this.addTag();
+                    })
+                  Button('添加')
+                    .height(38)
+                    .fontSize(13)
+                    .backgroundColor($r('app.color.okr_primary_soft'))
+                    .fontColor($r('app.color.okr_primary'))
+                    .onClick((): void => {
+                      this.addTag();
+                    })
+                }
+                .width('100%')
+              }
+
+              SectionCard({ cardTitle: '优先级与截止' }) {
+                Row({ space: 8 }) {
+                  ForEach(this.levels(), (level: number): void => {
+                    OkrSelectChip({
+                      chipText: okrPriorityLabel(level),
+                      active: this.priority === level,
+                      chipColor: okrPriorityColor(level),
+                      onPick: (): void => {
+                        this.priority = level;
+                        this.dirty = true;
+                      }
+                    })
+                  }, (level: number): string => `${level}`)
+                }
+                .width('100%')
+
+                Row({ space: 8 }) {
+                  Button(this.dueLabel())
+                    .layoutWeight(1)
+                    .height(38)
+                    .fontSize(13)
+                    .backgroundColor($r('app.color.okr_bg'))
+                    .fontColor($r('app.color.okr_text_primary'))
+                    .onClick((): void => {
+                      this.pickDate();
+                    })
+                  Button('清除')
+                    .height(38)
+                    .fontSize(13)
+                    .backgroundColor($r('app.color.okr_bg'))
+                    .fontColor($r('app.color.okr_text_secondary'))
+                    .onClick((): void => {
+                      this.clearDate();
+                    })
+                }
+                .width('100%')
+              }
+
+              SectionCard({ cardTitle: '关联关键结果', cardHint: '把想法挂到 KR 上' }) {
+                Button(this.krButtonLabel())
+                  .width('100%')
+                  .height(38)
+                  .fontSize(13)
+                  .backgroundColor($r('app.color.okr_bg'))
+                  .fontColor(this.krButtonColor())
+                  .onClick((): void => {
+                    this.krPickerOpen = !this.krPickerOpen;
+                  })
+                if (this.krPickerOpen) {
+                  this.krPicker()
+                }
+              }
+
+              SectionCard({ cardTitle: '备注' }) {
+                TextArea({ placeholder: '补充说明、上下文、后续动作…', text: this.noteDraft })
+                  .height(110)
+                  .fontSize(14)
+                  .backgroundColor($r('app.color.okr_bg'))
+                  .borderRadius(12)
+                  .onChange((value: string): void => {
+                    this.noteDraft = value;
+                    this.dirty = true;
+                  })
+              }
+
+              Button('保存修改')
+                .width('100%')
+                .height(46)
+                .fontSize(15)
+                .fontWeight(FontWeight.Medium)
+                .backgroundColor($r('app.color.okr_primary'))
+                .fontColor($r('app.color.okr_on_primary'))
+                .onClick((): void => {
+                  this.save();
                 })
             }
             .width('100%')
-            .alignItems(HorizontalAlign.Start)
-
-            Button('保存修改')
-              .width('100%')
-              .height(46)
-              .fontSize(15)
-              .fontWeight(FontWeight.Medium)
-              .backgroundColor($r('app.color.okr_primary'))
-              .fontColor($r('app.color.okr_on_primary'))
-              .onClick((): void => {
-                this.save();
-              })
+            .padding({ bottom: 24 })
           }
+          .layoutWeight(1)
           .width('100%')
-          .padding({ bottom: 24 })
+          .scrollBar(BarState.Off)
         }
-        .layoutWeight(1)
-        .scrollBar(BarState.Off)
         .width('100%')
+        .height('100%')
+        .padding({ left: 16, right: 16, top: 12 })
       }
-      .width('100%')
-      .height('100%')
-      .padding({ left: 16, right: 16, top: 12 })
-      .backgroundColor($r('app.color.okr_bg'))
     }
     .hideTitleBar(true)
     .backgroundColor($r('app.color.okr_bg'))
