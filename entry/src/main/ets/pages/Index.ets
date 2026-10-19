@@ -5,10 +5,21 @@ import { OkrEmptyHint } from '../components/OkrCommon';
 import { ObjectiveCard } from '../components/ObjectiveCard';
 import { QuickCapture } from '../components/QuickCapture';
 import { TagFilterBar } from '../components/TagFilterBar';
-import { OkrIdeaItem, OkrIdeaParam, OkrKrParam, OkrObjectiveItem } from '../model/OkrModel';
+import {
+  OkrIdeaItem,
+  OkrIdeaParam,
+  OkrKrParam,
+  OkrObjectiveItem,
+  OkrObjectiveParam,
+  OkrProjectItem,
+  OkrProjectParam,
+  okrHashTag
+} from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
 import { SESSION } from '../store/SessionStore';
 import { SYNC } from '../store/SyncService';
+import { ProjectCard } from '../components/ProjectCard';
+import { PageShell } from '../components/PageShell';
 
 @Entry
 @ComponentV2
@@ -19,6 +30,9 @@ struct Index {
   @Local objTitle: string = '';
   @Local objPeriod: string = '';
   @Local objDesc: string = '';
+  @Local projectComposerOpen: boolean = false;
+  @Local projTitle: string = '';
+  @Local projDesc: string = '';
 
   private visibleIdeas(): OkrIdeaItem[] {
     return OKR_STORE.visibleIdeas();
@@ -26,6 +40,66 @@ struct Index {
 
   private objectiveList(): OkrObjectiveItem[] {
     return OKR_STORE.objectives;
+  }
+
+  private projectList(): OkrProjectItem[] {
+    return OKR_STORE.projectList(false);
+  }
+
+  private projectButtonLabel(): string {
+    return this.projectComposerOpen ? '收起' : '＋ 新项目';
+  }
+
+  private toggleProjectComposer(): void {
+    this.projectComposerOpen = !this.projectComposerOpen;
+    this.projTitle = '';
+    this.projDesc = '';
+  }
+
+  private createProject(): void {
+    if (this.projTitle.trim().length === 0) {
+      return;
+    }
+    OKR_STORE.addProject(this.projTitle.trim(), this.projDesc.trim(), okrHashTag(this.projTitle.trim()));
+    this.projectComposerOpen = false;
+    this.projTitle = '';
+    this.projDesc = '';
+  }
+
+  @Builder
+  projectComposer() {
+    Column({ space: 8 }) {
+      TextInput({ placeholder: '项目名称，例如「写作项目」', text: this.projTitle })
+        .height(40)
+        .fontSize(13)
+        .backgroundColor($r('app.color.okr_bg'))
+        .borderRadius(8)
+        .onChange((value: string): void => {
+          this.projTitle = value;
+        })
+      TextInput({ placeholder: '项目描述（选填）', text: this.projDesc })
+        .height(40)
+        .fontSize(13)
+        .backgroundColor($r('app.color.okr_bg'))
+        .borderRadius(8)
+        .onChange((value: string): void => {
+          this.projDesc = value;
+        })
+      Button('创建项目')
+        .width(88)
+        .height(40)
+        .fontSize(13)
+        .backgroundColor($r('app.color.okr_project'))
+        .fontColor($r('app.color.okr_on_primary'))
+        .onClick((): void => {
+          this.createProject();
+        })
+    }
+    .width('100%')
+    .padding(12)
+    .alignItems(HorizontalAlign.Start)
+    .backgroundColor($r('app.color.okr_card'))
+    .borderRadius(14)
   }
 
   private headerSub(): string {
@@ -45,6 +119,36 @@ struct Index {
     this.pathStack.pushDestination({ name: 'KrDetail', param: param })
       .catch((error: BusinessError): void => {
         console.error(`open kr failed: ${error.message}`);
+      });
+  }
+
+  private openProject(projectId: string): void {
+    const param: OkrProjectParam = { projectId: projectId };
+    this.pathStack.pushDestination({ name: 'ProjectDetail', param: param })
+      .catch((error: BusinessError): void => {
+        console.error(`open project failed: ${error.message}`);
+      });
+  }
+
+  private openObjective(objectiveId: string): void {
+    const param: OkrObjectiveParam = { objectiveId: objectiveId };
+    this.pathStack.pushDestination({ name: 'ObjectiveDetail', param: param })
+      .catch((error: BusinessError): void => {
+        console.error(`open objective failed: ${error.message}`);
+      });
+  }
+
+  private openTagManage(): void {
+    this.pathStack.pushDestination({ name: 'TagManage' })
+      .catch((error: BusinessError): void => {
+        console.error(`open tag manage failed: ${error.message}`);
+      });
+  }
+
+  private openSettings(): void {
+    this.pathStack.pushDestination({ name: 'Settings' })
+      .catch((error: BusinessError): void => {
+        console.error(`open settings failed: ${error.message}`);
       });
   }
 
@@ -93,6 +197,21 @@ struct Index {
         .fontColor($r('app.color.okr_text_tertiary'))
         .onClick((): void => {
           SYNC.syncNow();
+        })
+
+      Text('标签')
+        .fontSize(12)
+        .fontColor($r('app.color.okr_primary'))
+        .margin({ right: 12 })
+        .onClick((): void => {
+          this.openTagManage();
+        })
+
+      Text('设置')
+        .fontSize(12)
+        .fontColor($r('app.color.okr_primary'))
+        .onClick((): void => {
+          this.openSettings();
         })
     }
     .width('100%')
@@ -152,7 +271,15 @@ struct Index {
           this.objTitle = value;
         })
       Row({ space: 8 }) {
-        TextInput({ placeholder: '周期（选填）', text: this.objPeriod })
+        TextArea({ placeholder: '目标描述（选填）', text: this.objDesc })
+        .height(56)
+        .fontSize(13)
+        .backgroundColor($r('app.color.okr_bg'))
+        .borderRadius(8)
+        .onChange((value: string): void => {
+          this.objDesc = value;
+        })
+      TextInput({ placeholder: '周期（选填）', text: this.objPeriod })
           .layoutWeight(1)
           .height(40)
           .fontSize(13)
@@ -166,7 +293,7 @@ struct Index {
           .height(40)
           .fontSize(13)
           .backgroundColor($r('app.color.okr_primary'))
-          .fontColor('#FFFFFF')
+          .fontColor($r('app.color.okr_on_primary'))
           .onClick((): void => {
             this.createObjective();
           })
@@ -225,6 +352,9 @@ struct Index {
                 objectiveId: objItem.id,
                 onOpenKr: (id: string): void => {
                   this.openKr(id);
+                },
+                onEdit: (id: string): void => {
+                  this.openObjective(id);
                 }
               })
             }
@@ -240,36 +370,103 @@ struct Index {
     .padding({ left: 16, right: 16 })
   }
 
+  @Builder
+  projectsTab() {
+    Column({ space: 12 }) {
+      Row() {
+        Text('项目')
+          .fontSize(15)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.okr_text_primary'))
+          .layoutWeight(1)
+        Button(this.projectButtonLabel())
+          .height(32)
+          .fontSize(12)
+          .backgroundColor($r('app.color.okr_project_soft'))
+          .fontColor($r('app.color.okr_project'))
+          .onClick((): void => {
+            this.toggleProjectComposer();
+          })
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      if (this.projectComposerOpen) {
+        this.projectComposer()
+      }
+
+      if (this.projectList().length === 0) {
+        List() {
+          ListItem() {
+            OkrEmptyHint({
+              hintText: '还没有项目',
+              subText: '项目用于把目标、KR、任务串成一条线'
+            })
+          }
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .scrollBar(BarState.Off)
+      } else {
+        List({ space: 12 }) {
+          ForEach(this.projectList(), (projItem: OkrProjectItem) => {
+            ListItem() {
+              ProjectCard({
+                projectId: projItem.id,
+                onOpen: (id: string): void => {
+                  this.openProject(id);
+                }
+              })
+            }
+          }, (projItem: OkrProjectItem): string => projItem.id)
+        }
+        .width('100%')
+        .layoutWeight(1)
+        .scrollBar(BarState.Off)
+      }
+    }
+    .width('100%')
+    .height('100%')
+    .padding({ left: 16, right: 16 })
+  }
+
   build() {
     Column() {
       if (SESSION.isLoggedIn()) {
         Navigation(this.pathStack) {
-          Column({ space: 12 }) {
-            this.homeHeader()
-            Tabs({ index: this.currentTab }) {
-              TabContent() {
-                this.inboxTab()
-              }
-              .tabBar('收件箱')
+          PageShell() {
+            Column({ space: 12 }) {
+              this.homeHeader()
+              Tabs({ index: this.currentTab }) {
+                TabContent() {
+                  this.inboxTab()
+                }
+                .tabBar('收件箱')
 
-              TabContent() {
-                this.goalsTab()
+                TabContent() {
+                  this.goalsTab()
+                }
+                .tabBar('目标')
+
+                TabContent() {
+                  this.projectsTab()
+                }
+                .tabBar('项目')
               }
-              .tabBar('目标')
+              .barMode(BarMode.Fixed)
+              .barHeight(56)
+              .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
+              .backgroundColor($r('app.color.okr_bg'))
+              .onChange((index: number): void => {
+                this.currentTab = index;
+              })
+              .layoutWeight(1)
             }
-            .barMode(BarMode.Fixed)
-            .barHeight(56)
-            .divider({ strokeWidth: 1, color: $r('app.color.okr_divider') })
+            .width('100%')
+            .height('100%')
+            .padding({ left: 16, right: 16, top: 12 })
             .backgroundColor($r('app.color.okr_bg'))
-            .onChange((index: number): void => {
-              this.currentTab = index;
-            })
-            .layoutWeight(1)
           }
-          .width('100%')
-          .height('100%')
-          .padding({ left: 16, right: 16, top: 12 })
-          .backgroundColor($r('app.color.okr_bg'))
         }
         .mode(NavigationMode.Stack)
         .hideTitleBar(true)

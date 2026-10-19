@@ -9,6 +9,26 @@
       "name": "KrDetail",
       "buildFunction": "KrDetailBuilder",
       "pageSourceFile": "src/main/ets/pages/KrDetailPage.ets"
+    },
+    {
+      "name": "ProjectDetail",
+      "buildFunction": "ProjectDetailBuilder",
+      "pageSourceFile": "src/main/ets/pages/ProjectDetailPage.ets"
+    },
+    {
+      "name": "ObjectiveDetail",
+      "buildFunction": "ObjectiveDetailBuilder",
+      "pageSourceFile": "src/main/ets/pages/ObjectiveDetailPage.ets"
+    },
+    {
+      "name": "TagManage",
+      "buildFunction": "TagManageBuilder",
+      "pageSourceFile": "src/main/ets/pages/TagManagePage.ets"
+    },
+    {
+      "name": "Settings",
+      "buildFunction": "SettingsBuilder",
+      "pageSourceFile": "src/main/ets/pages/SettingsPage.ets"
     }
   ]
 }

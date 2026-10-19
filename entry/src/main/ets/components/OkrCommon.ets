@@ -8,7 +8,7 @@ export struct OkrTagChip {
 
   private textColor(): ResourceColor {
     if (this.solid) {
-      return '#FFFFFF';
+      return $r('app.color.okr_on_primary');
     }
     return $r('app.color.okr_text_secondary');
   }
@@ -35,13 +35,13 @@ export struct OkrTagChip {
 export struct OkrSelectChip {
   @Param chipText: string = '';
   @Param active: boolean = false;
-  @Param chipColor: ResourceColor = '#4E7BFF';
+  @Param chipColor: ResourceColor = $r('app.color.okr_primary');
   @Event onPick: () => void = (): void => {
   };
 
   private textColor(): ResourceColor {
     if (this.active) {
-      return '#FFFFFF';
+      return $r('app.color.okr_on_primary');
     }
     return $r('app.color.okr_text_secondary');
   }
@@ -70,7 +70,7 @@ export struct OkrSelectChip {
 @ComponentV2
 export struct OkrProgressTrack {
   @Param percent: number = 0;
-  @Param barColor: ResourceColor = '#4E7BFF';
+  @Param barColor: ResourceColor = $r('app.color.okr_primary');
   @Param barHeight: number = 6;
 
   private safePercent(): number {

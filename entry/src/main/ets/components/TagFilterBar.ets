@@ -14,7 +14,7 @@ export struct TagFilterBar {
         OkrSelectChip({
           chipText: '全部',
           active: OKR_STORE.activeTag.length === 0,
-          chipColor: '#4E7BFF',
+          chipColor: $r('app.color.okr_primary'),
           onPick: (): void => {
             OKR_STORE.activeTag = '';
           }
@@ -32,7 +32,7 @@ export struct TagFilterBar {
         OkrSelectChip({
           chipText: OKR_STORE.showDone ? '隐藏已完成' : '显示已完成',
           active: !OKR_STORE.showDone,
-          chipColor: '#868E96',
+          chipColor: $r('app.color.okr_text_secondary'),
           onPick: (): void => {
             OKR_STORE.showDone = !OKR_STORE.showDone;
           }

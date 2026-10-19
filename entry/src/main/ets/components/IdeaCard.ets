@@ -29,7 +29,7 @@ export struct IdeaCard {
 
   private deco(): TextDecorationOptions {
     if (this.item().done) {
-      return { type: TextDecorationType.LineThrough, color: '#AEB3BC' };
+      return { type: TextDecorationType.LineThrough, color: $r('app.color.okr_text_tertiary') };
     }
     return { type: TextDecorationType.None };
   }

@@ -14,6 +14,17 @@ export interface ApiObjectiveItem {
   title: string;
   period: string;
   note: string;
+  projectId: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ApiProjectItem {
+  id: string;
+  title: string;
+  note: string;
+  colorIndex: number;
+  archived: boolean;
   createdAt: number;
   updatedAt: number;
 }
@@ -24,6 +35,7 @@ export interface ApiKrItem {
   title: string;
   targetValue: string;
   dueDate: number;
+  projectId: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -36,6 +48,7 @@ export interface ApiIdeaItem {
   priority: number;
   dueDate: number;
   krId: string;
+  projectId: string;
   done: boolean;
   createdAt: number;
   updatedAt: number;
@@ -51,6 +64,7 @@ export interface ApiRemoved {
   krs: string[];
   ideas: string[];
   tags: string[];
+  projects: string[];
 }
 
 export interface ApiPushBody {
@@ -59,6 +73,7 @@ export interface ApiPushBody {
   krs: ApiKrItem[];
   ideas: ApiIdeaItem[];
   tags: ApiTagItem[];
+  projects: ApiProjectItem[];
   removed: ApiRemoved;
 }
 
@@ -80,6 +95,7 @@ export interface ApiPullResult {
   krs: ApiKrItem[];
   ideas: ApiIdeaItem[];
   tags: ApiTagItem[];
+  projects: ApiProjectItem[];
   error: string;
 }
 
@@ -95,6 +111,17 @@ interface RawObjective {
   title?: string;
   period?: string;
   note?: string;
+  projectId?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+interface RawProject {
+  id?: string;
+  title?: string;
+  note?: string;
+  colorIndex?: number;
+  archived?: boolean;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -105,6 +132,7 @@ interface RawKr {
   title?: string;
   targetValue?: string;
   dueDate?: number;
+  projectId?: string;
   createdAt?: number;
   updatedAt?: number;
 }
@@ -117,6 +145,7 @@ interface RawIdea {
   priority?: number;
   dueDate?: number;
   krId?: string;
+  projectId?: string;
   done?: boolean;
   createdAt?: number;
   updatedAt?: number;
@@ -144,6 +173,7 @@ interface RawPull {
   krs?: RawKr[];
   ideas?: RawIdea[];
   tags?: RawTag[];
+  projects?: RawProject[];
 }
 
 interface CredentialsPayload {
@@ -190,6 +220,23 @@ function mapObjective(raw: RawObjective): ApiObjectiveItem | undefined {
     title: s(raw.title),
     period: s(raw.period),
     note: s(raw.note),
+    projectId: s(raw.projectId),
+    createdAt: n(raw.createdAt),
+    updatedAt: n(raw.updatedAt)
+  };
+}
+
+function mapProject(raw: RawProject): ApiProjectItem | undefined {
+  const id: string = s(raw.id);
+  if (id.length === 0) {
+    return undefined;
+  }
+  return {
+    id: id,
+    title: s(raw.title),
+    note: s(raw.note),
+    colorIndex: n(raw.colorIndex),
+    archived: raw.archived === true,
     createdAt: n(raw.createdAt),
     updatedAt: n(raw.updatedAt)
   };
@@ -206,6 +253,7 @@ function mapKr(raw: RawKr): ApiKrItem | undefined {
     title: s(raw.title),
     targetValue: s(raw.targetValue),
     dueDate: n(raw.dueDate),
+    projectId: s(raw.projectId),
     createdAt: n(raw.createdAt),
     updatedAt: n(raw.updatedAt)
   };
@@ -224,6 +272,7 @@ function mapIdea(raw: RawIdea): ApiIdeaItem | undefined {
     priority: n(raw.priority, 1),
     dueDate: n(raw.dueDate),
     krId: s(raw.krId),
+    projectId: s(raw.projectId),
     done: raw.done === true,
     createdAt: n(raw.createdAt),
     updatedAt: n(raw.updatedAt)
@@ -322,7 +371,16 @@ export async function apiLogin(baseUrl: string, username: string, password: stri
 }
 
 function emptyPull(message: string): ApiPullResult {
-  return { cursor: 0, hasMore: false, objectives: [], krs: [], ideas: [], tags: [], error: message };
+  return {
+    cursor: 0,
+    hasMore: false,
+    objectives: [],
+    krs: [],
+    ideas: [],
+    tags: [],
+    projects: [],
+    error: message
+  };
 }
 
 export async function apiPull(baseUrl: string, token: string, cursor: number): Promise<ApiPullResult> {
@@ -336,6 +394,15 @@ export async function apiPull(baseUrl: string, token: string, cursor: number): P
     const krs: ApiKrItem[] = [];
     const ideas: ApiIdeaItem[] = [];
     const tags: ApiTagItem[] = [];
+    const projects: ApiProjectItem[] = [];
+    if (Array.isArray(raw.projects)) {
+      for (let i = 0; i < raw.projects.length; i++) {
+        const item: ApiProjectItem | undefined = mapProject(raw.projects[i]);
+        if (item !== undefined) {
+          projects.push(item);
+        }
+      }
+    }
     if (Array.isArray(raw.objectives)) {
       for (let i = 0; i < raw.objectives.length; i++) {
         const item: ApiObjectiveItem | undefined = mapObjective(raw.objectives[i]);
@@ -375,6 +442,7 @@ export async function apiPull(baseUrl: string, token: string, cursor: number): P
       krs: krs,
       ideas: ideas,
       tags: tags,
+      projects: projects,
       error: ''
     };
   } catch (err) {

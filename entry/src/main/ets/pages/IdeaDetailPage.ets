@@ -23,6 +23,7 @@ struct IdeaDetailPage {
   @Local priority: number = OkrPriority.Medium;
   @Local due: number = 0;
   @Local krId: string = '';
+  @Local projectId: string = '';
   @Local tagList: string[] = [];
   @Local tagInput: string = '';
   @Local krPickerOpen: boolean = false;
@@ -84,6 +85,7 @@ struct IdeaDetailPage {
     this.priority = found.priority;
     this.due = found.dueDate;
     this.krId = found.krId;
+    this.projectId = found.projectId;
     this.tagList = found.tags.slice();
     this.loaded = true;
     this.dirty = false;
@@ -148,6 +150,7 @@ struct IdeaDetailPage {
       priority: this.priority,
       dueDate: this.due,
       krId: this.krId,
+      projectId: this.projectId,
       done: base.done,
       createdAt: base.createdAt,
       updatedAt: base.updatedAt
@@ -451,7 +454,7 @@ struct IdeaDetailPage {
               .fontSize(15)
               .fontWeight(FontWeight.Medium)
               .backgroundColor($r('app.color.okr_primary'))
-              .fontColor('#FFFFFF')
+              .fontColor($r('app.color.okr_on_primary'))
               .onClick((): void => {
                 this.save();
               })

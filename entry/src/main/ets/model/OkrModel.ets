@@ -13,6 +13,16 @@ export interface OkrTagItem {
   colorIndex: number;
 }
 
+export interface OkrProjectItem {
+  id: string;
+  title: string;
+  desc: string;
+  colorIndex: number;
+  archived: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface OkrIdeaItem {
   id: string;
   title: string;
@@ -21,6 +31,7 @@ export interface OkrIdeaItem {
   priority: number;
   dueDate: number;
   krId: string;
+  projectId: string;
   done: boolean;
   createdAt: number;
   updatedAt: number;
@@ -32,6 +43,7 @@ export interface OkrKrItem {
   title: string;
   targetValue: string;
   dueDate: number;
+  projectId: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -41,6 +53,7 @@ export interface OkrObjectiveItem {
   title: string;
   period: string;
   desc: string;
+  projectId: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -50,6 +63,7 @@ export interface OkrSnapshot {
   krs: OkrKrItem[];
   objectives: OkrObjectiveItem[];
   tags: OkrTagItem[];
+  projects: OkrProjectItem[];
 }
 
 export interface OkrParsedText {
@@ -64,6 +78,14 @@ export interface OkrIdeaParam {
 export interface OkrKrParam {
   objectiveId: string;
   krId: string;
+}
+
+export interface OkrProjectParam {
+  projectId: string;
+}
+
+export interface OkrObjectiveParam {
+  objectiveId: string;
 }
 
 export const OKR_TAG_PALETTE: string[] = [
@@ -172,6 +194,7 @@ export function okrEmptyIdea(): OkrIdeaItem {
     priority: 0,
     dueDate: 0,
     krId: '',
+    projectId: '',
     done: false,
     createdAt: 0,
     updatedAt: 0

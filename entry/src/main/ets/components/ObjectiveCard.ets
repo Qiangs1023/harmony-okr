@@ -2,7 +2,8 @@ import {
   OkrKrItem,
   OkrObjectiveItem,
   okrFormatDate,
-  okrNow
+  okrNow,
+  okrTagColor
 } from '../model/OkrModel';
 import { OKR_STORE } from '../store/OkrStore';
 import { OkrProgressTrack } from './OkrCommon';
@@ -65,6 +66,8 @@ export struct KrRow {
 @ComponentV2
 export struct ObjectiveCard {
   @Param objectiveId: string = '';
+  @Event onEdit: (objectiveId: string) => void = (objectiveId: string): void => {
+  };
   @Event onOpenKr: (krId: string) => void = (krId: string): void => {
   };
   @Local krComposerOpen: boolean = false;
@@ -91,6 +94,15 @@ export struct ObjectiveCard {
       return '目标';
     }
     return found.period;
+  }
+
+  private projectLabel(): string {
+    const found: OkrObjectiveItem | undefined = this.obj();
+    if (found === undefined || found.projectId.length === 0) {
+      return '';
+    }
+    const title: string = OKR_STORE.projectTitle(found.projectId);
+    return title.length > 0 ? title : '';
   }
 
   private descText(): string {
@@ -150,10 +162,27 @@ export struct ObjectiveCard {
             .padding({ left: 8, right: 8, top: 3, bottom: 3 })
             .borderRadius(6)
             .backgroundColor($r('app.color.okr_primary_soft'))
+          if (this.projectLabel().length > 0) {
+            Text(this.projectLabel())
+              .fontSize(11)
+              .fontWeight(FontWeight.Medium)
+              .fontColor($r('app.color.okr_project'))
+              .padding({ left: 8, right: 8, top: 3, bottom: 3 })
+              .borderRadius(6)
+              .backgroundColor($r('app.color.okr_project_soft'))
+          }
+          Blank()
           Text(`${this.progress()}%`)
             .fontSize(13)
             .fontWeight(FontWeight.Bold)
             .fontColor($r('app.color.okr_primary'))
+          Text('编辑')
+            .fontSize(12)
+            .fontColor($r('app.color.okr_primary'))
+            .padding({ left: 8 })
+            .onClick((): void => {
+              this.onEdit(this.objectiveId);
+            })
         }
         .width('100%')
         .justifyContent(FlexAlign.SpaceBetween)
@@ -230,7 +259,7 @@ export struct ObjectiveCard {
               .height(32)
               .fontSize(12)
               .backgroundColor($r('app.color.okr_primary'))
-              .fontColor('#FFFFFF')
+              .fontColor($r('app.color.okr_on_primary'))
               .layoutWeight(1)
               .onClick((): void => {
                 this.createKr();

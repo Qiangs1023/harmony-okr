@@ -1,6 +1,18 @@
 {
   "color": [
     {
+      "name": "okr_on_primary",
+      "value": "#0E1014"
+    },
+    {
+      "name": "okr_project",
+      "value": "#B79CFF"
+    },
+    {
+      "name": "okr_project_soft",
+      "value": "#271C3D"
+    },
+    {
       "name": "start_window_background",
       "value": "#000000"
     },

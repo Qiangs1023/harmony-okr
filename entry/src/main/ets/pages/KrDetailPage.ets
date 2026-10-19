@@ -111,6 +111,7 @@ struct KrDetailPage {
       title: this.titleDraft.trim().length > 0 ? this.titleDraft.trim() : found.title,
       targetValue: this.targetDraft.trim(),
       dueDate: this.due,
+      projectId: found.projectId,
       createdAt: found.createdAt,
       updatedAt: found.updatedAt
     };
@@ -361,7 +362,7 @@ struct KrDetailPage {
                     .height(36)
                     .fontSize(13)
                     .backgroundColor($r('app.color.okr_primary'))
-                    .fontColor('#FFFFFF')
+                    .fontColor($r('app.color.okr_on_primary'))
                     .onClick((): void => {
                       this.addIdea();
                     })

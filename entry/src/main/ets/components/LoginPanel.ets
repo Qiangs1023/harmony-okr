@@ -118,7 +118,7 @@ export struct LoginPanel {
           .height(46)
           .fontSize(15)
           .backgroundColor($r('app.color.okr_primary'))
-          .fontColor('#FFFFFF')
+          .fontColor($r('app.color.okr_on_primary'))
           .enabled(this.canSubmit())
           .onClick((): void => {
             this.submit();
