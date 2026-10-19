@@ -313,7 +313,12 @@ struct Index {
           .width('100%')
           .padding({ left: 18, right: 18, top: 8, bottom: 2 })
 
-          this.currentView()
+          // 各页自身是 height('100%')，必须用 layoutWeight 限高，否则会把标签栏挤出可视区
+          Column() {
+            this.currentView()
+          }
+          .width('100%')
+          .layoutWeight(1)
 
           OkrTabBar({
             activeIndex: this.currentTab,
